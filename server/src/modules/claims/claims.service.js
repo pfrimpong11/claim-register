@@ -76,6 +76,9 @@ export class ClaimsService {
   }
   /** @param {import('zod').infer<typeof import('./claims.schemas.js').claimsQuerySchema>} query */
   async list(query) {
+    const statusIds = query.status
+      ? await this.repository.idsByFinancialStatus(query.status)
+      : undefined;
     /** @type {import('@prisma/client').Prisma.ClaimWhereInput} */
     const where = {
       ...(query.currency && { currencyCode: query.currency.toUpperCase() }),
@@ -85,12 +88,7 @@ export class ClaimsService {
       ...(query.insured && {
         insuredNameSnapshot: { contains: query.insured, mode: 'insensitive' },
       }),
-      ...(query.status &&
-        (query.status === 'RESERVED_NOT_SETTLED'
-          ? { payables: { none: { status: 'APPROVED', payableType: 'INDEMNITY' } } }
-          : query.status === 'SETTLED_PAYMENT_OUTSTANDING'
-            ? { payables: { some: { status: 'APPROVED', payableType: 'INDEMNITY' } } }
-            : { id: { equals: '00000000-0000-0000-0000-000000000000' } })),
+      ...(statusIds && { id: { in: statusIds } }),
       ...(query.lossNature && { lossNature: { contains: query.lossNature, mode: 'insensitive' } }),
       ...(query.search && {
         OR: [
@@ -126,13 +124,21 @@ export class ClaimsService {
           result.approvedGrouped
             .find((a) => a.currencyCode === g.currencyCode)
             ?._sum?.amount?.toString() ?? '0';
+        const paid =
+          result.paidGrouped
+            .find((p) => p.settlementCurrencyCode === g.currencyCode)
+            ?._sum?.settlementAmount?.toString() ?? '0';
+        const outstanding = Prisma.Decimal.max(
+          new Prisma.Decimal(approved).minus(paid),
+          0,
+        ).toString();
         return {
           currencyCode: g.currencyCode,
           claimCount: g._count,
           estimatedLoss: g._sum?.amount?.toString() ?? '0',
           approvedAmount: approved,
-          paidAmount: '0',
-          outstandingAmount: approved,
+          paidAmount: paid,
+          outstandingAmount: outstanding,
         };
       }),
     };
@@ -144,7 +150,7 @@ export class ClaimsService {
  *     status: string,
  *     amount: import('@prisma/client').Prisma.Decimal
  *   }>
- *   payables?: Array<{status:string,payableType:string,amount:import('@prisma/client').Prisma.Decimal}>
+ *   payables?: Array<{status:string,payableType:string,amount:import('@prisma/client').Prisma.Decimal,payments?:Array<{status:string,settlementAmount:import('@prisma/client').Prisma.Decimal}>}>
  * } & Record<string, unknown>} claim
  */
 function serialize(claim) {
@@ -154,12 +160,20 @@ function serialize(claim) {
     new Prisma.Decimal(0),
   );
   const approvedAmount = approved.toString();
+  const paid = (claim.payables ?? [])
+    .flatMap((payable) => payable.payments ?? [])
+    .reduce((total, payment) => total.plus(payment.settlementAmount), new Prisma.Decimal(0));
+  const outstanding = Prisma.Decimal.max(approved.minus(paid), 0);
   return {
     ...claim,
     estimatedLossAmount: reserve?.amount?.toString() ?? '0',
     approvedAmount,
-    paidAmount: '0',
-    outstandingAmount: approvedAmount,
-    financialStatus: approved.isZero() ? 'RESERVED_NOT_SETTLED' : 'SETTLED_PAYMENT_OUTSTANDING',
+    paidAmount: paid.toString(),
+    outstandingAmount: outstanding.toString(),
+    financialStatus: approved.isZero()
+      ? 'RESERVED_NOT_SETTLED'
+      : outstanding.isZero()
+        ? 'SETTLED_AND_PAID'
+        : 'SETTLED_PAYMENT_OUTSTANDING',
   };
 }

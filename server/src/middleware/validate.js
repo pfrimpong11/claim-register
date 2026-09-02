@@ -2,7 +2,7 @@ import { AppError } from '../shared/errors.js';
 import { ZodError } from 'zod';
 
 /**
- * @param {{ body?: import('zod').ZodType, params?: import('zod').ZodType, query?: import('zod').ZodType }} schemas
+ * @param {{ body?: import('zod').ZodType, params?: import('zod').ZodType, query?: import('zod').ZodType, headers?: import('zod').ZodType }} schemas
  * @returns {import('express').RequestHandler}
  */
 export function validate(schemas) {
@@ -13,6 +13,7 @@ export function validate(schemas) {
       if (schemas.query) {
         request.validatedQuery = schemas.query.parse(request.query);
       }
+      if (schemas.headers) schemas.headers.parse(request.headers);
       return next();
     } catch (error) {
       const issues = error instanceof ZodError ? error.issues : undefined;

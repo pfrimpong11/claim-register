@@ -47,7 +47,9 @@ export function DashboardShell() {
       <p>Roles: {user.roles.join(', ')}</p>
       <nav aria-label="Primary navigation">
         <Link href="/claims">Claims</Link>
-        {user.permissions.includes('accounting.view') ? <span>Accounting</span> : null}
+        {user.permissions.includes('accounting.view') ? (
+          <Link href="/accounting">Accounting</Link>
+        ) : null}
         {user.permissions.includes('audit.view') ? <span>Audit</span> : null}
       </nav>
       {error ? <p role="alert">{error}</p> : null}

@@ -40,18 +40,24 @@ export class ClaimsRepository {
         policy: { include: { insuredParty: true } },
         reserves: { orderBy: { createdAt: 'desc' } },
         statusHistory: { orderBy: { changedAt: 'desc' } },
-        payables: { where: { status: 'APPROVED', payableType: 'INDEMNITY' } },
+        payables: {
+          where: { status: 'APPROVED', payableType: 'INDEMNITY' },
+          include: { payments: { where: { status: 'SUCCESSFUL' } } },
+        },
       },
     });
   }
   /** @param {import('@prisma/client').Prisma.ClaimWhereInput} where @param {import('zod').infer<typeof import('./claims.schemas.js').claimsQuerySchema>} query */
   async list(where, query) {
-    const [items, total, grouped, approvedGrouped] = await this.prisma.$transaction([
+    const [items, total, grouped, approvedGrouped, paidGrouped] = await this.prisma.$transaction([
       this.prisma.claim.findMany({
         where,
         include: {
           reserves: { where: { status: 'ACTIVE', reserveType: 'INDEMNITY' }, take: 1 },
-          payables: { where: { status: 'APPROVED', payableType: 'INDEMNITY' } },
+          payables: {
+            where: { status: 'APPROVED', payableType: 'INDEMNITY' },
+            include: { payments: { where: { status: 'SUCCESSFUL' } } },
+          },
         },
         orderBy: { [query.sort]: query.direction },
         skip: (query.page - 1) * query.pageSize,
@@ -71,7 +77,23 @@ export class ClaimsRepository {
         where: { status: 'APPROVED', payableType: 'INDEMNITY', claim: where },
         _sum: { amount: true },
       }),
+      this.prisma.claimPayment.groupBy({
+        by: ['settlementCurrencyCode'],
+        orderBy: { settlementCurrencyCode: 'asc' },
+        where: { status: 'SUCCESSFUL', payable: { payableType: 'INDEMNITY', claim: where } },
+        _sum: { settlementAmount: true },
+      }),
     ]);
-    return { items, total, grouped, approvedGrouped };
+    return { items, total, grouped, approvedGrouped, paidGrouped };
+  }
+  /** @param {string} status */
+  async idsByFinancialStatus(status) {
+    /** @type {Array<{id:string}>} */
+    const rows = await this.prisma.$queryRaw`
+      SELECT c.id FROM claims c
+      LEFT JOIN (SELECT claim_id, SUM(amount) approved FROM claim_payables WHERE status = 'APPROVED' AND payable_type = 'INDEMNITY' GROUP BY claim_id) a ON a.claim_id = c.id
+      LEFT JOIN (SELECT cp.claim_id, SUM(cp.settlement_amount) paid FROM claim_payments cp JOIN claim_payables p ON p.id = cp.payable_id WHERE cp.status = 'SUCCESSFUL' AND p.payable_type = 'INDEMNITY' GROUP BY cp.claim_id) d ON d.claim_id = c.id
+      WHERE CASE WHEN COALESCE(a.approved,0)=0 THEN 'RESERVED_NOT_SETTLED' WHEN GREATEST(COALESCE(a.approved,0)-COALESCE(d.paid,0),0)=0 THEN 'SETTLED_AND_PAID' ELSE 'SETTLED_PAYMENT_OUTSTANDING' END = ${status}`;
+    return rows.map((row) => row.id);
   }
 }

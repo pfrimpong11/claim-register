@@ -28,6 +28,13 @@ import { PayablesController } from './modules/payables/payables.controller.js';
 import { PayablesRepository } from './modules/payables/payables.repository.js';
 import { createPayablesRouter } from './modules/payables/payables.routes.js';
 import { PayablesService } from './modules/payables/payables.service.js';
+import { PaymentsController } from './modules/payments/payments.controller.js';
+import { PaymentsRepository } from './modules/payments/payments.repository.js';
+import { createPaymentsRouter } from './modules/payments/payments.routes.js';
+import { PaymentsService } from './modules/payments/payments.service.js';
+import { AccountingController } from './modules/accounting/accounting.controller.js';
+import { AccountingRepository } from './modules/accounting/accounting.repository.js';
+import { createAccountingRouter } from './modules/accounting/accounting.routes.js';
 import { createGlobalRateLimiter, createLoginRateLimiter } from './security/rate-limit.js';
 import { logger } from './shared/logger.js';
 import { createDocumentStorage } from './storage/document-storage.js';
@@ -111,6 +118,16 @@ export async function createServerRuntime() {
     authenticate,
     csrfProtection,
   });
+  const paymentsService = new PaymentsService(new PaymentsRepository(prisma), auditService);
+  const paymentsRouter = createPaymentsRouter({
+    controller: new PaymentsController(paymentsService),
+    authenticate,
+    csrfProtection,
+  });
+  const accountingRouter = createAccountingRouter({
+    controller: new AccountingController(new AccountingRepository(prisma)),
+    authenticate,
+  });
   const documentsService = new DocumentsService({
     repository: documentsRepository,
     auditService,
@@ -133,6 +150,8 @@ export async function createServerRuntime() {
     claimsRouter,
     documentsRouter,
     payablesRouter,
+    paymentsRouter,
+    accountingRouter,
   });
 
   return {

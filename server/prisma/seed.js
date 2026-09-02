@@ -238,6 +238,38 @@ async function seed() {
         update: { name: account.name, accountType: account.accountType, isActive: true },
       });
     }
+    for (const account of [
+      {
+        code: 'GCB-GHS',
+        name: 'GCB Bank Claims Account',
+        accountType: 'BANK',
+        providerName: 'GCB Bank',
+        maskedIdentifier: '**** 1024',
+        currencyCode: 'GHS',
+      },
+      {
+        code: 'MTN-MOMO-GHS',
+        name: 'MTN Mobile Money Claims Wallet',
+        accountType: 'MOBILE_MONEY',
+        providerName: 'MTN Mobile Money',
+        maskedIdentifier: '+233 ** *** 4401',
+        currencyCode: 'GHS',
+      },
+      {
+        code: 'ECOBANK-USD',
+        name: 'Ecobank USD Claims Account',
+        accountType: 'BANK',
+        providerName: 'Ecobank Ghana',
+        maskedIdentifier: '**** 7782',
+        currencyCode: 'USD',
+      },
+    ]) {
+      await transaction.settlementAccount.upsert({
+        where: { code: account.code },
+        create: account,
+        update: { ...account, status: 'ACTIVE' },
+      });
+    }
     for (const [index, displayName] of partyNames.entries()) {
       const id = `10000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`;
       await transaction.party.upsert({

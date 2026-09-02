@@ -53,6 +53,7 @@ GET    /claims/:id/payables
 POST   /claims/:id/payables
 POST   /payables/:id/approve
 POST   /payables/:id/cancel
+GET    /payables/:id/payments
 POST   /payables/:id/payments
 POST   /payments/:id/approve
 POST   /payments/:id/mark-successful
@@ -74,6 +75,10 @@ GET    /health/ready
 ```
 
 For the exercise, payable creation always creates an `INDEMNITY` draft in the claim currency. Only drafts can be cancelled. Approval is a locked, atomic transition that posts the source-linked Claims Expense/Claims Payable journal; repeating an approval returns a conflict rather than creating another journal.
+
+Payment creation accepts `paymentDate`, decimal-string `paymentAmount`, `paymentCurrencyCode`, canonical decimal-string `fxRate`, `settlementAccountId`, and an optional reference. The server derives and stores `settlementAmount` in claim currency using half-up ISO currency rounding. Same-currency payments require rate `1`. Creation, approval, success, and reversal require `Idempotency-Key`; reusing a key with a different request returns `409`.
+
+Marking a payment successful locks its approved payable, rechecks successful settlement totals, and atomically posts the Claims Payable/Settlement Assets journal. Reversal records its actor/reason and posts a journal linked to the original; it never deletes or rewrites the historical payment facts.
 
 ## 4. Claims register query
 

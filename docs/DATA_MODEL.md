@@ -60,10 +60,10 @@ The exercise has one active indemnity reserve per claim. With more time, reserve
 ### Payables and payments
 
 - `claim_payables`: id, claim_id, payee_party_id, payable_type, amount, currency_code, status, description nullable, approved_by/at nullable, created_by, timestamps.
-- `claim_payments`: id, payment_number unique, claim_id, payable_id, payee_party_id, payment_date, payment_amount, payment_currency, fx_rate, settlement_amount, settlement_currency, settlement_account_id, reference nullable, status, created_by, approved_by/at nullable, reversed_payment_id nullable, timestamps.
+- `claim_payments`: id, payment_number unique, claim_id, payable_id, payee_party_id, payment_date, payment_amount, payment_currency, fx_rate, settlement_amount, settlement_currency, settlement_account_id, reference nullable, status, created/approved/succeeded actors and times, reversal actor/time/reason nullable, timestamps.
 - `idempotency_keys`: id, scope, key, actor_id, request_hash, response_code/body, expires_at, created_at; unique `(scope, key, actor_id)`.
 
-For the exercise a payment belongs to exactly one payable. With more time, `payment_allocations` would let one payment cover several payables without changing historical payment semantics.
+For the exercise a payment belongs to exactly one payable. Reversal transitions a successful payment to `REVERSED`, retains its immutable amount/FX facts, and creates a linked reversal journal; it does not create a negative payment row. With more time, `payment_allocations` would let one payment cover several payables without changing historical payment semantics.
 
 ### Reconciliation
 

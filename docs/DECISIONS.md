@@ -132,6 +132,12 @@ Physical deletion after deactivation is asynchronous and retryable. PostgreSQL r
 
 **Why:** Cancelling an approved financial obligation without an equal reversal would corrupt the audit and ledger history. A production implementation would add an explicit reasoned reversal event and reversing journal rather than mutating the approved record.
 
+## ADR-022: Payment reversal retains the original settlement facts
+
+**Decision:** Reversal changes a successful payment to `REVERSED`, records the reversal actor, time, and reason, and creates a new journal linked to the original payment journal. It does not delete the payment, alter its amount/FX facts, or create a negative payment row.
+
+**Why:** This is the smallest auditable reversal model for the exercise. The original execution remains reproducible, paid totals exclude the reversed status, and the ledger is corrected append-only through the linked reversing journal.
+
 ## What we would do with more time
 
 - Cloud hosting provider and production secret manager.

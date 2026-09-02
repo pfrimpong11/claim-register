@@ -1,6 +1,7 @@
 'use client';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { apiRequest, readCookie } from '@/lib/api';
+import { PayablePayments } from './payable-payments';
 
 type Party = { id: string; displayName: string };
 type Journal = {
@@ -138,6 +139,9 @@ export function ClaimPayables({ claimId, onChanged }: { claimId: string; onChang
                     Cancel
                   </button>
                 </div>
+              )}
+              {p.status === 'APPROVED' && (
+                <PayablePayments payableId={p.id} onChanged={onChanged} />
               )}
             </li>
           ))}

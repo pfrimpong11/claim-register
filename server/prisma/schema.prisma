@@ -93,6 +93,28 @@ enum JournalSourceType {
   PAYMENT_REVERSAL
 }
 
+enum JournalStatus {
+  POSTED
+  REVERSED
+}
+
+enum SettlementAccountType {
+  BANK
+  MOBILE_MONEY
+  PAYMENT_GATEWAY
+  CASH
+  OTHER
+}
+
+enum PaymentStatus {
+  DRAFT
+  APPROVED
+  PROCESSING
+  SUCCESSFUL
+  FAILED
+  REVERSED
+}
+
 model User {
   id                 String               @id @default(uuid()) @db.Uuid
   email              String               @unique @db.VarChar(320)
@@ -117,6 +139,11 @@ model User {
   approvedPayables ClaimPayable[] @relation("PayableApprover")
   cancelledPayables ClaimPayable[] @relation("PayableCanceller")
   postedJournals JournalEntry[] @relation("JournalPoster")
+  createdPayments ClaimPayment[] @relation("PaymentCreator")
+  approvedPayments ClaimPayment[] @relation("PaymentApprover")
+  succeededPayments ClaimPayment[] @relation("PaymentSuccessActor")
+  reversedPayments ClaimPayment[] @relation("PaymentReverser")
+  idempotencyKeys IdempotencyKey[]
 
   @@map("users")
 }
@@ -133,6 +160,9 @@ model Currency {
   payables      ClaimPayable[]
   journalEntries JournalEntry[]
   journalLines  JournalLine[]
+  settlementAccounts SettlementAccount[]
+  paymentCurrencies ClaimPayment[] @relation("PaymentCurrency")
+  settlementCurrencies ClaimPayment[] @relation("SettlementCurrency")
 
   @@map("currencies")
 }
@@ -151,6 +181,7 @@ model Party {
   policies    Policy[]
   payables    ClaimPayable[]
   journalLines JournalLine[]
+  payments ClaimPayment[]
 
   @@index([displayName])
   @@index([status, partyType])
@@ -204,6 +235,7 @@ model Claim {
   payables                   ClaimPayable[]
   journalEntries             JournalEntry[]
   journalLines               JournalLine[]
+  payments                   ClaimPayment[]
 
   @@index([lossDate])
   @@index([notificationDate])
@@ -311,6 +343,7 @@ model ClaimPayable {
   creator User @relation("PayableCreator", fields: [createdBy], references: [id])
   approver User? @relation("PayableApprover", fields: [approvedBy], references: [id])
   canceller User? @relation("PayableCanceller", fields: [cancelledBy], references: [id])
+  payments ClaimPayment[]
 
   @@index([claimId, status, payableType])
   @@index([payeePartyId])
@@ -340,12 +373,17 @@ model JournalEntry {
   currencyCode String @map("currency_code") @db.Char(3)
   postedBy String @map("posted_by") @db.Uuid
   postedAt DateTime @default(now()) @map("posted_at") @db.Timestamptz(6)
+  status JournalStatus @default(POSTED)
+  reversalOfEntryId String? @map("reversal_of_entry_id") @db.Uuid
   claim Claim @relation(fields: [claimId], references: [id], onDelete: Restrict)
   currency Currency @relation(fields: [currencyCode], references: [code])
   poster User @relation("JournalPoster", fields: [postedBy], references: [id])
   lines JournalLine[]
+  reversalOf JournalEntry? @relation("JournalReversal", fields: [reversalOfEntryId], references: [id], onDelete: Restrict)
+  reversals JournalEntry[] @relation("JournalReversal")
   @@unique([sourceType, sourceId])
   @@index([claimId, postedAt])
+  @@index([reversalOfEntryId])
   @@map("journal_entries")
 }
 
@@ -373,6 +411,86 @@ model JournalNumberSequence {
   year Int @id
   nextValue Int @default(1) @map("next_value")
   @@map("journal_number_sequences")
+}
+
+model SettlementAccount {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(50)
+  name String @db.VarChar(150)
+  accountType SettlementAccountType @map("account_type")
+  providerName String? @map("provider_name") @db.VarChar(150)
+  maskedIdentifier String @map("masked_identifier") @db.VarChar(100)
+  currencyCode String @map("currency_code") @db.Char(3)
+  status RecordStatus @default(ACTIVE)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  currency Currency @relation(fields: [currencyCode], references: [code])
+  payments ClaimPayment[]
+  @@index([status, accountType, currencyCode])
+  @@map("settlement_accounts")
+}
+
+model ClaimPayment {
+  id String @id @default(uuid()) @db.Uuid
+  paymentNumber String @unique @map("payment_number") @db.VarChar(50)
+  claimId String @map("claim_id") @db.Uuid
+  payableId String @map("payable_id") @db.Uuid
+  payeePartyId String @map("payee_party_id") @db.Uuid
+  paymentDate DateTime @map("payment_date") @db.Date
+  paymentAmount Decimal @map("payment_amount") @db.Decimal(19, 4)
+  paymentCurrencyCode String @map("payment_currency_code") @db.Char(3)
+  fxRate Decimal @map("fx_rate") @db.Decimal(20, 8)
+  settlementAmount Decimal @map("settlement_amount") @db.Decimal(19, 4)
+  settlementCurrencyCode String @map("settlement_currency_code") @db.Char(3)
+  settlementAccountId String @map("settlement_account_id") @db.Uuid
+  reference String? @db.VarChar(200)
+  status PaymentStatus @default(DRAFT)
+  createdBy String @map("created_by") @db.Uuid
+  approvedBy String? @map("approved_by") @db.Uuid
+  approvedAt DateTime? @map("approved_at") @db.Timestamptz(6)
+  succeededBy String? @map("succeeded_by") @db.Uuid
+  succeededAt DateTime? @map("succeeded_at") @db.Timestamptz(6)
+  reversedBy String? @map("reversed_by") @db.Uuid
+  reversedAt DateTime? @map("reversed_at") @db.Timestamptz(6)
+  reversalReason String? @map("reversal_reason") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Restrict)
+  payable ClaimPayable @relation(fields: [payableId], references: [id], onDelete: Restrict)
+  payee Party @relation(fields: [payeePartyId], references: [id], onDelete: Restrict)
+  paymentCurrency Currency @relation("PaymentCurrency", fields: [paymentCurrencyCode], references: [code])
+  settlementCurrency Currency @relation("SettlementCurrency", fields: [settlementCurrencyCode], references: [code])
+  settlementAccount SettlementAccount @relation(fields: [settlementAccountId], references: [id], onDelete: Restrict)
+  creator User @relation("PaymentCreator", fields: [createdBy], references: [id])
+  approver User? @relation("PaymentApprover", fields: [approvedBy], references: [id])
+  successActor User? @relation("PaymentSuccessActor", fields: [succeededBy], references: [id])
+  reverser User? @relation("PaymentReverser", fields: [reversedBy], references: [id])
+  @@index([payableId, status, paymentDate])
+  @@index([claimId, status])
+  @@index([settlementAccountId, paymentDate])
+  @@map("claim_payments")
+}
+
+model PaymentNumberSequence {
+  year Int @id
+  nextValue Int @default(1) @map("next_value")
+  @@map("payment_number_sequences")
+}
+
+model IdempotencyKey {
+  id String @id @default(uuid()) @db.Uuid
+  scope String @db.VarChar(100)
+  key String @db.VarChar(200)
+  actorId String @map("actor_id") @db.Uuid
+  requestHash String @map("request_hash") @db.Char(64)
+  responseCode Int @map("response_code")
+  responseBody Json @map("response_body")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  @@unique([scope, key, actorId])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
 }
 
 model Role {

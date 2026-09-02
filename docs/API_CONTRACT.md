@@ -80,6 +80,10 @@ GET    /health/ready
 
 Reference searches accept `q` and bounded `limit`. Party creation accepts type, display name, and optional email/phone. Policy creation accepts number, optional name, insured party, currency, and optional effective dates.
 
+Claim-document upload uses `multipart/form-data` with `file`, `documentType`, and optional `description` fields. Accepted content is PDF, JPEG, PNG, or WebP up to the configured byte limit. Document list responses never expose storage keys or provider identifiers; downloads always pass through the authenticated API.
+
+Deactivation immediately removes the document from active API results and records a durable `PENDING` cleanup state. BullMQ performs provider deletion with bounded retries, while PostgreSQL retains cleanup attempts and completion as the source of truth. Startup recovery re-enqueues pending cleanup records.
+
 ## 5. Concurrency
 
 Use an optimistic version field for ordinary editable records. Financial transitions additionally use a database transaction and locked/serializable revalidation. Return `409` when a stale or conflicting state prevents completion.

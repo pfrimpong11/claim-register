@@ -53,7 +53,7 @@ All important entities --> AuditLog
 - `claims`: id, claim_number unique, policy_id, policy_number_snapshot, policy_name_snapshot nullable, insured_name_snapshot, loss_date, date_notified, loss_nature, description nullable, currency_code, created_by, timestamps.
 - `claim_reserves`: id, claim_id, reserve_type, amount, currency_code, status, reason nullable, created_by, timestamps.
 - `claim_status_history`: id, claim_id, from_status nullable, to_status, reason nullable, changed_by, changed_at.
-- `claim_documents`: id, claim_id, document_type, original_file_name, storage_provider, storage_key unique, cloudinary_asset_id unique nullable, cloudinary_public_id unique nullable, cloudinary_version nullable, resource_type nullable, format nullable, mime_type, file_size_bytes, provider_metadata jsonb nullable, description nullable, status, uploaded_by, uploaded_at, deactivated_by/at nullable.
+- `claim_documents`: id, claim_id, document_type, original_file_name, storage_provider, storage_key unique, Cloudinary identifiers/delivery metadata nullable, MIME/format and byte size, provider metadata, description nullable, status, uploader/time, deactivation actor/time, and durable cleanup status/attempt/error/completion fields.
 
 The exercise has one active indemnity reserve per claim. With more time, reserve movements would preserve every reserve adjustment.
 

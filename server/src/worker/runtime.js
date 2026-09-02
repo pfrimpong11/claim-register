@@ -8,11 +8,13 @@ export class WorkerRuntime {
    * @param {import('ioredis').default} input.connection
    * @param {import('pino').Logger} input.logger
    * @param {number} input.concurrency
+   * @param {{documentCleanup?:import('../modules/documents/document-cleanup.service.js').DocumentCleanupService}} [input.services]
    */
-  constructor({ connection, logger, concurrency }) {
+  constructor({ connection, logger, concurrency, services = {} }) {
     this.connection = connection;
     this.logger = logger;
     this.concurrency = concurrency;
+    this.services = services;
     /** @type {Worker | null} */
     this.worker = null;
     this.ready = false;
@@ -23,7 +25,7 @@ export class WorkerRuntime {
   async start() {
     if (this.worker) return;
 
-    this.worker = new Worker(QUEUE_NAME, createJobProcessor(this.logger), {
+    this.worker = new Worker(QUEUE_NAME, createJobProcessor(this.logger, this.services), {
       connection: this.connection,
       concurrency: this.concurrency,
     });

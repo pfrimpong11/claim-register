@@ -42,7 +42,6 @@ These phases are an execution order for one time-boxed exercise, not separate pr
 - Claims, initial indemnity reserves, and status-history migrations.
 - Create claim workflow with searchable policy selection.
 - Minimal inline party and policy modals.
-- Lightweight claim document upload/list/view/download/deactivate flow behind a storage interface: authenticated/private Cloudinary when configured, otherwise protected `server/uploads/`. Include validation, limits, path-traversal tests, authorized delivery, and compensating cleanup for both adapters.
 - Register/detail pages with server-side filters, sort, pagination, URL state, and per-currency summaries.
 - Seed claims representing realistic dates, currencies, early financial states, and a few safe document metadata fixtures.
 
@@ -50,10 +49,24 @@ These phases are an execution order for one time-boxed exercise, not separate pr
 
 - A Claims Officer can create and retrieve a claim.
 - The initial estimated loss is represented by an active indemnity reserve.
-- An authorized user can upload and retrieve a validated document from the claim detail page.
 - Register totals match the active filters and never combine currencies.
 
-## Phase 3 — Indemnity payables
+## Phase 3 — Claim documents
+
+**Deliverables**
+
+- Provider-neutral claim-document schema and immutable migration.
+- Upload/list/view/download/deactivate flow behind a storage interface: authenticated/private Cloudinary when configured, otherwise protected `server/uploads/`.
+- Validation, limits, path-traversal protection, authorized delivery, compensating cleanup, and focused coverage for both adapters.
+- Lightweight documents section on the claim detail page.
+
+**Exit criteria**
+
+- An authorized user can upload, list, retrieve, and deactivate a validated claim document.
+- Local storage is selected when Cloudinary is absent; partial Cloudinary configuration still fails startup.
+- Uploaded content is never exposed through static middleware or a user-controlled path.
+
+## Phase 4 — Indemnity payables
 
 **Deliverables**
 
@@ -72,7 +85,7 @@ These phases are an execution order for one time-boxed exercise, not separate pr
 - Authorized users may approve regardless of who created the record; maker-checker is documented as a with-more-time improvement.
 - Every approved indemnity has exactly one balanced, source-linked approval journal.
 
-## Phase 4 — Payments and FX
+## Phase 5 — Payments and FX
 
 **Deliverables**
 
@@ -91,7 +104,7 @@ These phases are an execution order for one time-boxed exercise, not separate pr
 - Full successful indemnity payment yields `SETTLED_AND_PAID`; reversal restores outstanding.
 - Journals balance in claim currency and posted history is corrected only through linked reversal journals.
 
-## Phase 5 — Reconciliation
+## Phase 6 — Reconciliation
 
 **Deliverables**
 
@@ -107,7 +120,7 @@ These phases are an execution order for one time-boxed exercise, not separate pr
 - A mobile-money transaction can be matched without bank-specific logic.
 - Neither side can be overmatched, including concurrent requests.
 
-## Phase 6 — Reporting, export, and hardening
+## Phase 7 — Reporting, export, and hardening
 
 **Deliverables**
 

@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { apiRequest } from '@/lib/api';
+import { ClaimDocuments } from './claim-documents';
 type StatusEvent = { id: string; toStatus: string; changedAt: string };
 type Claim = {
   claimNumber: string;
@@ -63,6 +64,7 @@ export function ClaimDetail({ id }: { id: string }) {
           </dd>
         </div>
       </dl>
+      <ClaimDocuments claimId={id} />
       <h2>Activity</h2>
       <ul>
         {c.statusHistory.map((s) => (

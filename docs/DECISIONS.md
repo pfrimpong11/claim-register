@@ -88,6 +88,8 @@ For this exercise, permissions authorize approval actions. Maker-checker separat
 
 **Why:** Documents are central to real claims handling and were explicitly retained for the mini register. Complex versioning, OCR, approvals, and mandatory-document rules remain out of scope. A storage interface uses authenticated/private Cloudinary delivery when configured and a protected `server/uploads/` adapter when Cloudinary is absent. Partial cloud configuration fails startup rather than silently changing provider.
 
+Physical deletion after deactivation is asynchronous and retryable. PostgreSQL records pending/completed cleanup and failed attempts; BullMQ performs deletion, and startup recovery re-enqueues pending work so Redis is not the system of record.
+
 ## ADR-015: Local development does not use Docker
 
 **Decision:** Run Next.js, Express with its embedded worker, PostgreSQL, and Redis through host-installed/local services during development. Retain Docker/Compose only for deployment packaging and production-like validation.

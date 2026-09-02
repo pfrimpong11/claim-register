@@ -17,6 +17,7 @@ import { createHealthRouter } from './modules/health/health.routes.js';
  * @param {import('express').Router} [input.authRouter]
  * @param {import('express').Router} [input.referenceRouter]
  * @param {import('express').Router} [input.claimsRouter]
+ * @param {import('express').Router} [input.documentsRouter]
  */
 export function createApp({
   config,
@@ -26,6 +27,7 @@ export function createApp({
   authRouter,
   referenceRouter,
   claimsRouter,
+  documentsRouter,
 }) {
   const app = express();
   app.disable('x-powered-by');
@@ -61,6 +63,7 @@ export function createApp({
   if (authRouter) app.use('/api/v1/auth', authRouter);
   if (referenceRouter) app.use('/api/v1', referenceRouter);
   if (claimsRouter) app.use('/api/v1/claims', claimsRouter);
+  if (documentsRouter) app.use('/api/v1', documentsRouter);
   app.use(notFound);
   app.use(errorHandler);
 

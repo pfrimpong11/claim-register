@@ -179,6 +179,32 @@ details {
   border-top: 1px solid #d6e1dc;
   padding-top: 1rem;
 }
+.documents-section {
+  margin-top: 2rem;
+  border-top: 1px solid #d6e1dc;
+  padding-top: 1rem;
+}
+.document-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+.document-list {
+  list-style: none;
+  padding: 0;
+}
+.document-list li,
+.document-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.document-list li {
+  padding: 1rem 0;
+  border-bottom: 1px solid #d6e1dc;
+}
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));

@@ -51,6 +51,12 @@ const environmentSchema = z
     CLOUDINARY_API_KEY: optionalSecret,
     CLOUDINARY_API_SECRET: optionalSecret,
     LOCAL_UPLOAD_DIR: z.string().trim().min(1).default('uploads'),
+    DOCUMENT_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1024)
+      .max(25 * 1024 * 1024)
+      .default(10 * 1024 * 1024),
   })
   .superRefine((value, context) => {
     const cloudinary = [

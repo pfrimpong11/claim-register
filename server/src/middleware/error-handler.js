@@ -1,4 +1,5 @@
 import { AppError } from '../shared/errors.js';
+import multer from 'multer';
 
 /** @type {import('express').RequestHandler} */
 export function notFound(request, _response, next) {
@@ -14,6 +15,16 @@ export function notFound(request, _response, next) {
 
 /** @type {import('express').ErrorRequestHandler} */
 export function errorHandler(error, request, response, _next) {
+  if (error instanceof multer.MulterError) {
+    error = new AppError({
+      code: error.code === 'LIMIT_FILE_SIZE' ? 'DOCUMENT_TOO_LARGE' : 'INVALID_MULTIPART_UPLOAD',
+      message:
+        error.code === 'LIMIT_FILE_SIZE'
+          ? 'The document exceeds the configured size limit.'
+          : 'The document upload is invalid.',
+      status: 400,
+    });
+  }
   const known = error instanceof AppError;
   const status = known ? error.status : 500;
   const code = known ? error.code : 'INTERNAL_SERVER_ERROR';

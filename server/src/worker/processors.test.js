@@ -17,4 +17,17 @@ describe('worker processor registry', () => {
       'Unsupported job type',
     );
   });
+
+  it('routes validated document cleanup work to the shared service', async () => {
+    const documentCleanup = { process: vi.fn().mockResolvedValue({ ok: true }) };
+    const processJob = createJobProcessor({ info: vi.fn() }, { documentCleanup });
+    await expect(
+      processJob({
+        id: 'job-3',
+        name: JOB_NAMES.DOCUMENT_CLEANUP,
+        data: { documentId: '11111111-1111-4111-8111-111111111111' },
+      }),
+    ).resolves.toEqual({ ok: true });
+    expect(documentCleanup.process).toHaveBeenCalledOnce();
+  });
 });

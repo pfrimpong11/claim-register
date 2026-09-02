@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+client/.next
+coverage
+*.log
+.env*
+server/uploads/*
+!server/uploads/.gitkeep
+docs
+TASKS.md

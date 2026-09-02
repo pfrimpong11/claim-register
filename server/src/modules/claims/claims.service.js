@@ -1,4 +1,5 @@
 import { AppError } from '../../shared/errors.js';
+import { Prisma } from '@prisma/client';
 export class ClaimsService {
   /** @param {import('./claims.repository.js').ClaimsRepository} repository @param {import('../audit/audit.service.js').AuditService} auditService */
   constructor(repository, auditService) {
@@ -85,9 +86,11 @@ export class ClaimsService {
         insuredNameSnapshot: { contains: query.insured, mode: 'insensitive' },
       }),
       ...(query.status &&
-        query.status !== 'RESERVED_NOT_SETTLED' && {
-          id: { equals: '00000000-0000-0000-0000-000000000000' },
-        }),
+        (query.status === 'RESERVED_NOT_SETTLED'
+          ? { payables: { none: { status: 'APPROVED', payableType: 'INDEMNITY' } } }
+          : query.status === 'SETTLED_PAYMENT_OUTSTANDING'
+            ? { payables: { some: { status: 'APPROVED', payableType: 'INDEMNITY' } } }
+            : { id: { equals: '00000000-0000-0000-0000-000000000000' } })),
       ...(query.lossNature && { lossNature: { contains: query.lossNature, mode: 'insensitive' } }),
       ...(query.search && {
         OR: [
@@ -118,14 +121,20 @@ export class ClaimsService {
         total: result.total,
         totalPages: Math.ceil(result.total / query.pageSize),
       },
-      summaries: result.grouped.map((g) => ({
-        currencyCode: g.currencyCode,
-        claimCount: g._count,
-        estimatedLoss: g._sum?.amount?.toString() ?? '0',
-        approvedAmount: '0',
-        paidAmount: '0',
-        outstandingAmount: '0',
-      })),
+      summaries: result.grouped.map((g) => {
+        const approved =
+          result.approvedGrouped
+            .find((a) => a.currencyCode === g.currencyCode)
+            ?._sum?.amount?.toString() ?? '0';
+        return {
+          currencyCode: g.currencyCode,
+          claimCount: g._count,
+          estimatedLoss: g._sum?.amount?.toString() ?? '0',
+          approvedAmount: approved,
+          paidAmount: '0',
+          outstandingAmount: approved,
+        };
+      }),
     };
   }
 }
@@ -135,16 +144,22 @@ export class ClaimsService {
  *     status: string,
  *     amount: import('@prisma/client').Prisma.Decimal
  *   }>
+ *   payables?: Array<{status:string,payableType:string,amount:import('@prisma/client').Prisma.Decimal}>
  * } & Record<string, unknown>} claim
  */
 function serialize(claim) {
   const reserve = claim.reserves?.find((r) => r.status === 'ACTIVE');
+  const approved = (claim.payables ?? []).reduce(
+    (total, payable) => total.plus(payable.amount),
+    new Prisma.Decimal(0),
+  );
+  const approvedAmount = approved.toString();
   return {
     ...claim,
     estimatedLossAmount: reserve?.amount?.toString() ?? '0',
-    approvedAmount: '0',
+    approvedAmount,
     paidAmount: '0',
-    outstandingAmount: '0',
-    financialStatus: 'RESERVED_NOT_SETTLED',
+    outstandingAmount: approvedAmount,
+    financialStatus: approved.isZero() ? 'RESERVED_NOT_SETTLED' : 'SETTLED_PAYMENT_OUTSTANDING',
   };
 }

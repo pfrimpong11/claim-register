@@ -24,6 +24,10 @@ import { ReferenceController } from './modules/reference/reference.controller.js
 import { ReferenceRepository } from './modules/reference/reference.repository.js';
 import { createReferenceRouter } from './modules/reference/reference.routes.js';
 import { ReferenceService } from './modules/reference/reference.service.js';
+import { PayablesController } from './modules/payables/payables.controller.js';
+import { PayablesRepository } from './modules/payables/payables.repository.js';
+import { createPayablesRouter } from './modules/payables/payables.routes.js';
+import { PayablesService } from './modules/payables/payables.service.js';
 import { createGlobalRateLimiter, createLoginRateLimiter } from './security/rate-limit.js';
 import { logger } from './shared/logger.js';
 import { createDocumentStorage } from './storage/document-storage.js';
@@ -101,6 +105,12 @@ export async function createServerRuntime() {
     authenticate,
     csrfProtection,
   });
+  const payablesService = new PayablesService(new PayablesRepository(prisma), auditService);
+  const payablesRouter = createPayablesRouter({
+    controller: new PayablesController(payablesService),
+    authenticate,
+    csrfProtection,
+  });
   const documentsService = new DocumentsService({
     repository: documentsRepository,
     auditService,
@@ -122,6 +132,7 @@ export async function createServerRuntime() {
     referenceRouter,
     claimsRouter,
     documentsRouter,
+    payablesRouter,
   });
 
   return {

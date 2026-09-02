@@ -49,6 +49,7 @@ GET    /claims/:id/documents
 POST   /claims/:id/documents
 GET    /documents/:id/download
 POST   /documents/:id/deactivate
+GET    /claims/:id/payables
 POST   /claims/:id/payables
 POST   /payables/:id/approve
 POST   /payables/:id/cancel
@@ -71,6 +72,8 @@ GET    /audit-logs
 GET    /health/live
 GET    /health/ready
 ```
+
+For the exercise, payable creation always creates an `INDEMNITY` draft in the claim currency. Only drafts can be cancelled. Approval is a locked, atomic transition that posts the source-linked Claims Expense/Claims Payable journal; repeating an approval returns a conflict rather than creating another journal.
 
 ## 4. Claims register query
 

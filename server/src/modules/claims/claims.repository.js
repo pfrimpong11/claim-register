@@ -40,15 +40,19 @@ export class ClaimsRepository {
         policy: { include: { insuredParty: true } },
         reserves: { orderBy: { createdAt: 'desc' } },
         statusHistory: { orderBy: { changedAt: 'desc' } },
+        payables: { where: { status: 'APPROVED', payableType: 'INDEMNITY' } },
       },
     });
   }
   /** @param {import('@prisma/client').Prisma.ClaimWhereInput} where @param {import('zod').infer<typeof import('./claims.schemas.js').claimsQuerySchema>} query */
   async list(where, query) {
-    const [items, total, grouped] = await this.prisma.$transaction([
+    const [items, total, grouped, approvedGrouped] = await this.prisma.$transaction([
       this.prisma.claim.findMany({
         where,
-        include: { reserves: { where: { status: 'ACTIVE', reserveType: 'INDEMNITY' }, take: 1 } },
+        include: {
+          reserves: { where: { status: 'ACTIVE', reserveType: 'INDEMNITY' }, take: 1 },
+          payables: { where: { status: 'APPROVED', payableType: 'INDEMNITY' } },
+        },
         orderBy: { [query.sort]: query.direction },
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
@@ -61,7 +65,13 @@ export class ClaimsRepository {
         _sum: { amount: true },
         _count: true,
       }),
+      this.prisma.claimPayable.groupBy({
+        by: ['currencyCode'],
+        orderBy: { currencyCode: 'asc' },
+        where: { status: 'APPROVED', payableType: 'INDEMNITY', claim: where },
+        _sum: { amount: true },
+      }),
     ]);
-    return { items, total, grouped };
+    return { items, total, grouped, approvedGrouped };
   }
 }

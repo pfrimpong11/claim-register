@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '@/lib/api';
 import { ClaimDocuments } from './claim-documents';
+import { ClaimPayables } from './claim-payables';
 type StatusEvent = { id: string; toStatus: string; changedAt: string };
 type Claim = {
   claimNumber: string;
@@ -22,11 +23,16 @@ type Claim = {
 export function ClaimDetail({ id }: { id: string }) {
   const [c, setC] = useState<Claim>();
   const [error, setError] = useState('');
+  const load = useCallback(
+    () =>
+      apiRequest<{ data: Claim }>(`/claims/${id}`)
+        .then((r) => setC(r.data))
+        .catch((e) => setError(e.message)),
+    [id],
+  );
   useEffect(() => {
-    apiRequest<{ data: Claim }>(`/claims/${id}`)
-      .then((r) => setC(r.data))
-      .catch((e) => setError(e.message));
-  }, [id]);
+    load();
+  }, [load]);
   if (error) return <p role="alert">{error}</p>;
   if (!c) return <p>Loading claim…</p>;
   return (
@@ -64,6 +70,7 @@ export function ClaimDetail({ id }: { id: string }) {
           </dd>
         </div>
       </dl>
+      <ClaimPayables claimId={id} onChanged={load} />
       <ClaimDocuments claimId={id} />
       <h2>Activity</h2>
       <ul>

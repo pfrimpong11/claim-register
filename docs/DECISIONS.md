@@ -126,6 +126,12 @@ Physical deletion after deactivation is asynchronous and retryable. PostgreSQL r
 
 **Why:** The lightweight GL demonstrates the relationship between claims operations and accounting without building a general accounting platform. It balances in claim currency using stored settlement equivalents. Functional currency, revaluation, FX gain/loss, configurable posting rules, periods, and IFRS 17 are documented as improvements with more time.
 
+## ADR-021: Approved payables are not cancelled in place
+
+**Decision:** A payable can be cancelled only while it is in `DRAFT`. Approval makes the payable and its source-linked journal immutable for the exercise.
+
+**Why:** Cancelling an approved financial obligation without an equal reversal would corrupt the audit and ledger history. A production implementation would add an explicit reasoned reversal event and reversing journal rather than mutating the approved record.
+
 ## What we would do with more time
 
 - Cloud hosting provider and production secret manager.

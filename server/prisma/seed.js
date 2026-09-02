@@ -12,6 +12,7 @@ const permissions = [
   ['payables.create', 'Create payables', 'payables'],
   ['payables.view', 'View payables', 'payables'],
   ['payables.approve', 'Approve payables', 'payables'],
+  ['payables.cancel', 'Cancel draft payables', 'payables'],
   ['payments.create', 'Create payments', 'payments'],
   ['payments.view', 'View payments', 'payments'],
   ['payments.approve', 'Approve payments', 'payments'],
@@ -55,6 +56,7 @@ const roleDefinitions = [
       'reserves.create',
       'payables.create',
       'payables.view',
+      'payables.cancel',
       'parties.view',
       'parties.create',
       'policies.view',
@@ -77,6 +79,8 @@ const roleDefinitions = [
       'payables.create',
       'payables.view',
       'payables.approve',
+      'payables.cancel',
+      'accounting.view',
       'parties.view',
       'parties.create',
       'policies.view',
@@ -221,6 +225,17 @@ async function seed() {
         where: { code },
         create: { code, name, symbol, decimalPlaces },
         update: { name, symbol, decimalPlaces, isActive: true },
+      });
+    }
+    for (const account of [
+      { code: 'CLAIMS_EXPENSE', name: 'Claims Expense', accountType: 'EXPENSE' },
+      { code: 'CLAIMS_PAYABLE', name: 'Claims Payable', accountType: 'LIABILITY' },
+      { code: 'SETTLEMENT_ASSETS', name: 'Settlement Assets / Cash', accountType: 'ASSET' },
+    ]) {
+      await transaction.gLAccount.upsert({
+        where: { code: account.code },
+        create: account,
+        update: { name: account.name, accountType: account.accountType, isActive: true },
       });
     }
     for (const [index, displayName] of partyNames.entries()) {

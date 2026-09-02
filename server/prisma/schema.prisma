@@ -67,6 +67,32 @@ enum DocumentCleanupStatus {
   COMPLETED
 }
 
+enum PayableType {
+  INDEMNITY
+  ADJUSTER_FEE
+  LEGAL_FEE
+  MEDICAL_FEE
+  OTHER
+}
+
+enum PayableStatus {
+  DRAFT
+  APPROVED
+  CANCELLED
+}
+
+enum GLAccountType {
+  ASSET
+  LIABILITY
+  EXPENSE
+}
+
+enum JournalSourceType {
+  CLAIM_PAYABLE
+  CLAIM_PAYMENT
+  PAYMENT_REVERSAL
+}
+
 model User {
   id                 String               @id @default(uuid()) @db.Uuid
   email              String               @unique @db.VarChar(320)
@@ -87,6 +113,10 @@ model User {
   claimStatusChanges ClaimStatusHistory[] @relation("StatusChanger")
   uploadedDocuments  ClaimDocument[]      @relation("DocumentUploader")
   deactivatedDocuments ClaimDocument[]    @relation("DocumentDeactivator")
+  createdPayables ClaimPayable[] @relation("PayableCreator")
+  approvedPayables ClaimPayable[] @relation("PayableApprover")
+  cancelledPayables ClaimPayable[] @relation("PayableCanceller")
+  postedJournals JournalEntry[] @relation("JournalPoster")
 
   @@map("users")
 }
@@ -100,6 +130,9 @@ model Currency {
   policies      Policy[]
   claims        Claim[]
   reserves      ClaimReserve[]
+  payables      ClaimPayable[]
+  journalEntries JournalEntry[]
+  journalLines  JournalLine[]
 
   @@map("currencies")
 }
@@ -116,6 +149,8 @@ model Party {
   updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
   creator     User         @relation("PartyCreator", fields: [createdBy], references: [id])
   policies    Policy[]
+  payables    ClaimPayable[]
+  journalLines JournalLine[]
 
   @@index([displayName])
   @@index([status, partyType])
@@ -166,6 +201,9 @@ model Claim {
   reserves                   ClaimReserve[]
   statusHistory              ClaimStatusHistory[]
   documents                  ClaimDocument[]
+  payables                   ClaimPayable[]
+  journalEntries             JournalEntry[]
+  journalLines               JournalLine[]
 
   @@index([lossDate])
   @@index([notificationDate])
@@ -248,6 +286,93 @@ model ClaimNumberSequence {
   nextValue Int @default(1) @map("next_value")
 
   @@map("claim_number_sequences")
+}
+
+model ClaimPayable {
+  id String @id @default(uuid()) @db.Uuid
+  claimId String @map("claim_id") @db.Uuid
+  payeePartyId String @map("payee_party_id") @db.Uuid
+  payableType PayableType @default(INDEMNITY) @map("payable_type")
+  amount Decimal @db.Decimal(19, 4)
+  currencyCode String @map("currency_code") @db.Char(3)
+  status PayableStatus @default(DRAFT)
+  description String? @db.VarChar(500)
+  createdBy String @map("created_by") @db.Uuid
+  approvedBy String? @map("approved_by") @db.Uuid
+  approvedAt DateTime? @map("approved_at") @db.Timestamptz(6)
+  cancelledBy String? @map("cancelled_by") @db.Uuid
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancellationReason String? @map("cancellation_reason") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Restrict)
+  payee Party @relation(fields: [payeePartyId], references: [id], onDelete: Restrict)
+  currency Currency @relation(fields: [currencyCode], references: [code])
+  creator User @relation("PayableCreator", fields: [createdBy], references: [id])
+  approver User? @relation("PayableApprover", fields: [approvedBy], references: [id])
+  canceller User? @relation("PayableCanceller", fields: [cancelledBy], references: [id])
+
+  @@index([claimId, status, payableType])
+  @@index([payeePartyId])
+  @@map("claim_payables")
+}
+
+model GLAccount {
+  id String @id @default(uuid()) @db.Uuid
+  code String @unique @db.VarChar(50)
+  name String @db.VarChar(150)
+  accountType GLAccountType @map("account_type")
+  isActive Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lines JournalLine[]
+  @@map("gl_accounts")
+}
+
+model JournalEntry {
+  id String @id @default(uuid()) @db.Uuid
+  journalNumber String @unique @map("journal_number") @db.VarChar(50)
+  entryDate DateTime @map("entry_date") @db.Date
+  sourceType JournalSourceType @map("source_type")
+  sourceId String @map("source_id") @db.Uuid
+  claimId String @map("claim_id") @db.Uuid
+  description String @db.VarChar(500)
+  currencyCode String @map("currency_code") @db.Char(3)
+  postedBy String @map("posted_by") @db.Uuid
+  postedAt DateTime @default(now()) @map("posted_at") @db.Timestamptz(6)
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Restrict)
+  currency Currency @relation(fields: [currencyCode], references: [code])
+  poster User @relation("JournalPoster", fields: [postedBy], references: [id])
+  lines JournalLine[]
+  @@unique([sourceType, sourceId])
+  @@index([claimId, postedAt])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id String @id @default(uuid()) @db.Uuid
+  journalEntryId String @map("journal_entry_id") @db.Uuid
+  glAccountId String @map("gl_account_id") @db.Uuid
+  claimId String @map("claim_id") @db.Uuid
+  partyId String? @map("party_id") @db.Uuid
+  currencyCode String @map("currency_code") @db.Char(3)
+  debitAmount Decimal @default(0) @map("debit_amount") @db.Decimal(19, 4)
+  creditAmount Decimal @default(0) @map("credit_amount") @db.Decimal(19, 4)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Restrict)
+  glAccount GLAccount @relation(fields: [glAccountId], references: [id], onDelete: Restrict)
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Restrict)
+  party Party? @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  currency Currency @relation(fields: [currencyCode], references: [code])
+  @@index([journalEntryId])
+  @@index([glAccountId])
+  @@map("journal_lines")
+}
+
+model JournalNumberSequence {
+  year Int @id
+  nextValue Int @default(1) @map("next_value")
+  @@map("journal_number_sequences")
 }
 
 model Role {

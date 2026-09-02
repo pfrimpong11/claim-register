@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PartyType {
+  PERSON
+  ORGANIZATION
+}
+
+enum ReserveType {
+  INDEMNITY
+}
+
+enum ReserveStatus {
+  ACTIVE
+  REPLACED
+  CANCELLED
+}
+
+enum ClaimFinancialStatus {
+  RESERVED_NOT_SETTLED
+  SETTLED_PAYMENT_OUTSTANDING
+  SETTLED_AND_PAID
+}
+
+model User {
+  id                 String               @id @default(uuid()) @db.Uuid
+  email              String               @unique @db.VarChar(320)
+  passwordHash       String               @map("password_hash") @db.VarChar(255)
+  firstName          String               @map("first_name") @db.VarChar(100)
+  lastName           String               @map("last_name") @db.VarChar(100)
+  status             UserStatus           @default(ACTIVE)
+  lastLoginAt        DateTime?            @map("last_login_at") @db.Timestamptz(6)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  roles              UserRole[]
+  sessions           Session[]
+  auditLogs          AuditLog[]
+  createdParties     Party[]              @relation("PartyCreator")
+  createdPolicies    Policy[]             @relation("PolicyCreator")
+  createdClaims      Claim[]              @relation("ClaimCreator")
+  createdReserves    ClaimReserve[]       @relation("ReserveCreator")
+  claimStatusChanges ClaimStatusHistory[] @relation("StatusChanger")
+
+  @@map("users")
+}
+
+model Currency {
+  code          String         @id @db.Char(3)
+  name          String         @db.VarChar(100)
+  symbol        String         @db.VarChar(10)
+  decimalPlaces Int            @map("decimal_places") @db.SmallInt
+  isActive      Boolean        @default(true) @map("is_active")
+  policies      Policy[]
+  claims        Claim[]
+  reserves      ClaimReserve[]
+
+  @@map("currencies")
+}
+
+model Party {
+  id          String       @id @default(uuid()) @db.Uuid
+  partyType   PartyType    @map("party_type")
+  displayName String       @map("display_name") @db.VarChar(200)
+  email       String?      @db.VarChar(320)
+  phone       String?      @db.VarChar(50)
+  status      RecordStatus @default(ACTIVE)
+  createdBy   String       @map("created_by") @db.Uuid
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  creator     User         @relation("PartyCreator", fields: [createdBy], references: [id])
+  policies    Policy[]
+
+  @@index([displayName])
+  @@index([status, partyType])
+  @@map("parties")
+}
+
+model Policy {
+  id             String       @id @default(uuid()) @db.Uuid
+  policyNumber   String       @unique @map("policy_number") @db.VarChar(100)
+  policyName     String?      @map("policy_name") @db.VarChar(200)
+  insuredPartyId String       @map("insured_party_id") @db.Uuid
+  currencyCode   String       @map("currency_code") @db.Char(3)
+  effectiveFrom  DateTime?    @map("effective_from") @db.Date
+  effectiveTo    DateTime?    @map("effective_to") @db.Date
+  status         RecordStatus @default(ACTIVE)
+  createdBy      String       @map("created_by") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  insuredParty   Party        @relation(fields: [insuredPartyId], references: [id])
+  currency       Currency     @relation(fields: [currencyCode], references: [code])
+  creator        User         @relation("PolicyCreator", fields: [createdBy], references: [id])
+  claims         Claim[]
+
+  @@index([insuredPartyId])
+  @@index([status, currencyCode])
+  @@map("policies")
+}
+
+model Claim {
+  id                         String               @id @default(uuid()) @db.Uuid
+  claimNumber                String               @unique @map("claim_number") @db.VarChar(50)
+  policyId                   String               @map("policy_id") @db.Uuid
+  policyNumberSnapshot       String               @map("policy_number_snapshot") @db.VarChar(100)
+  policyNameSnapshot         String?              @map("policy_name_snapshot") @db.VarChar(200)
+  insuredNameSnapshot        String               @map("insured_name_snapshot") @db.VarChar(200)
+  lossDate                   DateTime             @map("loss_date") @db.Date
+  notificationDate           DateTime             @map("notification_date") @db.Date
+  notificationOverrideReason String?              @map("notification_override_reason") @db.VarChar(500)
+  lossNature                 String               @map("loss_nature") @db.VarChar(150)
+  description                String?              @db.VarChar(2000)
+  currencyCode               String               @map("currency_code") @db.Char(3)
+  createdBy                  String               @map("created_by") @db.Uuid
+  createdAt                  DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  policy                     Policy               @relation(fields: [policyId], references: [id])
+  currency                   Currency             @relation(fields: [currencyCode], references: [code])
+  creator                    User                 @relation("ClaimCreator", fields: [createdBy], references: [id])
+  reserves                   ClaimReserve[]
+  statusHistory              ClaimStatusHistory[]
+
+  @@index([lossDate])
+  @@index([notificationDate])
+  @@index([currencyCode, lossDate])
+  @@index([policyId])
+  @@map("claims")
+}
+
+model ClaimReserve {
+  id           String        @id @default(uuid()) @db.Uuid
+  claimId      String        @map("claim_id") @db.Uuid
+  reserveType  ReserveType   @default(INDEMNITY) @map("reserve_type")
+  amount       Decimal       @db.Decimal(19, 4)
+  currencyCode String        @map("currency_code") @db.Char(3)
+  status       ReserveStatus @default(ACTIVE)
+  reason       String?       @db.VarChar(500)
+  createdBy    String        @map("created_by") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  claim        Claim         @relation(fields: [claimId], references: [id], onDelete: Restrict)
+  currency     Currency      @relation(fields: [currencyCode], references: [code])
+  creator      User          @relation("ReserveCreator", fields: [createdBy], references: [id])
+
+  @@index([claimId, status, reserveType])
+  @@map("claim_reserves")
+}
+
+model ClaimStatusHistory {
+  id         String                @id @default(uuid()) @db.Uuid
+  claimId    String                @map("claim_id") @db.Uuid
+  fromStatus ClaimFinancialStatus? @map("from_status")
+  toStatus   ClaimFinancialStatus  @map("to_status")
+  reason     String?               @db.VarChar(500)
+  changedBy  String                @map("changed_by") @db.Uuid
+  changedAt  DateTime              @default(now()) @map("changed_at") @db.Timestamptz(6)
+  claim      Claim                 @relation(fields: [claimId], references: [id], onDelete: Restrict)
+  changer    User                  @relation("StatusChanger", fields: [changedBy], references: [id])
+
+  @@index([claimId, changedAt])
+  @@map("claim_status_history")
+}
+
+model ClaimNumberSequence {
+  year      Int @id
+  nextValue Int @default(1) @map("next_value")
+
+  @@map("claim_number_sequences")
+}
+
+model Role {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique @db.VarChar(100)
+  name        String           @db.VarChar(150)
+  description String?          @db.VarChar(500)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique @db.VarChar(150)
+  name        String           @db.VarChar(150)
+  module      String           @db.VarChar(100)
+  description String?          @db.VarChar(500)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  roles       RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model UserRole {
+  userId     String   @map("user_id") @db.Uuid
+  roleId     String   @map("role_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  assignedAt   DateTime   @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model Session {
+  id            String    @id @default(uuid()) @db.Uuid
+  tokenHash     String    @unique @map("token_hash") @db.Char(64)
+  csrfTokenHash String    @map("csrf_token_hash") @db.Char(64)
+  userId        String    @map("user_id") @db.Uuid
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz(6)
+  ipAddress     String?   @map("ip_address") @db.VarChar(64)
+  userAgent     String?   @map("user_agent") @db.VarChar(500)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt    DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  actorUserId   String?  @map("actor_user_id") @db.Uuid
+  action        String   @db.VarChar(150)
+  entityType    String   @map("entity_type") @db.VarChar(100)
+  entityId      String?  @map("entity_id") @db.Uuid
+  oldValues     Json?    @map("old_values")
+  newValues     Json?    @map("new_values")
+  correlationId String   @map("correlation_id") @db.VarChar(100)
+  ipAddress     String?  @map("ip_address") @db.VarChar(64)
+  userAgent     String?  @map("user_agent") @db.VarChar(500)
+  occurredAt    DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  actor         User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, occurredAt])
+  @@index([actorUserId, occurredAt])
+  @@index([occurredAt])
+  @@map("audit_logs")
+}

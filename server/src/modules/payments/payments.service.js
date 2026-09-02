@@ -223,6 +223,12 @@ export class PaymentsService {
       context,
       async (tx, payment) => {
         if (payment.status !== 'SUCCESSFUL') conflict('Only a successful payment can be reversed.');
+        if ((payment.reconciliationMatches ?? []).length > 0)
+          throw new AppError({
+            code: 'PAYMENT_HAS_ACTIVE_RECONCILIATION',
+            message: 'Unmatch all reconciliation evidence before reversing this payment.',
+            status: 409,
+          });
         await this.repository.lockPayable(tx, payment.payableId);
         const originalJournal = await this.repository.paymentJournal(tx, id);
         if (!originalJournal)
@@ -408,11 +414,23 @@ function publicPayment(p) {
 }
 /** @param {PaymentShape & {journals?:Array<JournalShape>}} p */
 function serialize(p) {
+  const reconciliationMatched = (p.reconciliationMatches ?? []).reduce(
+    (total, match) => total.plus(match.matchedAmount),
+    new Prisma.Decimal(0),
+  );
   return {
     ...p,
     paymentAmount: p.paymentAmount.toString(),
     fxRate: p.fxRate.toString(),
     settlementAmount: p.settlementAmount.toString(),
+    reconciliationMatchedAmount: reconciliationMatched.toString(),
+    reconciliationUnmatchedAmount: p.paymentAmount.minus(reconciliationMatched).toString(),
+    reconciliationStatus: reconciliationMatched.eq(0)
+      ? 'UNMATCHED'
+      : reconciliationMatched.gte(p.paymentAmount)
+        ? 'MATCHED'
+        : 'PARTIALLY_MATCHED',
+    reconciliationMatches: undefined,
     journals: p.journals?.map(serializeJournal),
   };
 }
@@ -428,5 +446,5 @@ function serializeJournal(j) {
   };
 }
 
-/** @typedef {{paymentNumber:string,payableId:string,paymentAmount:import('@prisma/client').Prisma.Decimal,paymentCurrencyCode:string,fxRate:import('@prisma/client').Prisma.Decimal,settlementAmount:import('@prisma/client').Prisma.Decimal,settlementCurrencyCode:string,status:string} & Record<string,unknown>} PaymentShape */
+/** @typedef {{paymentNumber:string,payableId:string,paymentAmount:import('@prisma/client').Prisma.Decimal,paymentCurrencyCode:string,fxRate:import('@prisma/client').Prisma.Decimal,settlementAmount:import('@prisma/client').Prisma.Decimal,settlementCurrencyCode:string,status:string,reconciliationMatches?:Array<{matchedAmount:import('@prisma/client').Prisma.Decimal}>} & Record<string,unknown>} PaymentShape */
 /** @typedef {{lines?:Array<{debitAmount:import('@prisma/client').Prisma.Decimal,creditAmount:import('@prisma/client').Prisma.Decimal} & Record<string,unknown>>} & Record<string,unknown>} JournalShape */

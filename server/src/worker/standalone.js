@@ -5,6 +5,8 @@ import { logger } from '../shared/logger.js';
 import { createDocumentStorage } from '../storage/document-storage.js';
 import { DocumentCleanupService } from '../modules/documents/document-cleanup.service.js';
 import { DocumentsRepository } from '../modules/documents/documents.repository.js';
+import { CsvImportService } from '../modules/reconciliation/csv-import.service.js';
+import { ReconciliationRepository } from '../modules/reconciliation/reconciliation.repository.js';
 import { WorkerRuntime } from './runtime.js';
 
 const redis = createRedisConnection(env.REDIS_URL);
@@ -14,11 +16,15 @@ const documentCleanup = new DocumentCleanupService({
   storage: createDocumentStorage(env),
   logger,
 });
+const csvImport = new CsvImportService({
+  repository: new ReconciliationRepository(prisma),
+  logger,
+});
 const workerRuntime = new WorkerRuntime({
   connection: redis,
   logger,
   concurrency: env.WORKER_CONCURRENCY,
-  services: { documentCleanup },
+  services: { documentCleanup, csvImport },
 });
 let shuttingDown = false;
 

@@ -8,7 +8,7 @@ export class WorkerRuntime {
    * @param {import('ioredis').default} input.connection
    * @param {import('pino').Logger} input.logger
    * @param {number} input.concurrency
-   * @param {{documentCleanup?:import('../modules/documents/document-cleanup.service.js').DocumentCleanupService}} [input.services]
+   * @param {{documentCleanup?:import('../modules/documents/document-cleanup.service.js').DocumentCleanupService,csvImport?:import('../modules/reconciliation/csv-import.service.js').CsvImportService}} [input.services]
    */
   constructor({ connection, logger, concurrency, services = {} }) {
     this.connection = connection;

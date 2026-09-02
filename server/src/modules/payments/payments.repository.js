@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 export class PaymentsRepository {
   /** @param {import('@prisma/client').PrismaClient} prisma */ constructor(prisma) {
     this.prisma = prisma;
@@ -115,10 +116,11 @@ export class PaymentsRepository {
     });
   }
 }
-const paymentInclude = {
+const paymentInclude = Prisma.validator()({
   settlementAccount: true,
   payee: true,
   payable: { include: { claim: true } },
   creator: { select: { id: true, firstName: true, lastName: true } },
   approver: { select: { id: true, firstName: true, lastName: true } },
-};
+  reconciliationMatches: { where: { status: 'ACTIVE' } },
+});

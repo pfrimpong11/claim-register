@@ -1,5 +1,6 @@
 import { createApp } from './app.js';
 import { Queue } from 'bullmq';
+import { fileURLToPath } from 'node:url';
 import { env } from './config/env.js';
 import { createPrismaClient } from './infrastructure/prisma.js';
 import { createRedisConnection, ensureRedisConnected } from './infrastructure/redis.js';
@@ -35,6 +36,11 @@ import { PaymentsService } from './modules/payments/payments.service.js';
 import { AccountingController } from './modules/accounting/accounting.controller.js';
 import { AccountingRepository } from './modules/accounting/accounting.repository.js';
 import { createAccountingRouter } from './modules/accounting/accounting.routes.js';
+import { CsvImportService } from './modules/reconciliation/csv-import.service.js';
+import { ReconciliationController } from './modules/reconciliation/reconciliation.controller.js';
+import { ReconciliationRepository } from './modules/reconciliation/reconciliation.repository.js';
+import { createReconciliationRouter } from './modules/reconciliation/reconciliation.routes.js';
+import { ReconciliationService } from './modules/reconciliation/reconciliation.service.js';
 import { createGlobalRateLimiter, createLoginRateLimiter } from './security/rate-limit.js';
 import { logger } from './shared/logger.js';
 import { createDocumentStorage } from './storage/document-storage.js';
@@ -55,15 +61,18 @@ export async function createServerRuntime() {
     queue,
     logger,
   });
+  const reconciliationRepository = new ReconciliationRepository(prisma);
+  const csvImport = new CsvImportService({ repository: reconciliationRepository, queue, logger });
 
   const workerRuntime = new WorkerRuntime({
     connection: redis,
     logger,
     concurrency: env.WORKER_CONCURRENCY,
-    services: { documentCleanup },
+    services: { documentCleanup, csvImport },
   });
   if (env.START_EMBEDDED_WORKER) await workerRuntime.start();
   await documentCleanup.recoverPending();
+  await csvImport.recoverPending();
 
   const healthService = new HealthService({
     database: { query: () => prisma.$queryRaw`SELECT 1` },
@@ -128,6 +137,17 @@ export async function createServerRuntime() {
     controller: new AccountingController(new AccountingRepository(prisma)),
     authenticate,
   });
+  const reconciliationService = new ReconciliationService({
+    repository: reconciliationRepository,
+    auditService,
+    csvImport,
+    importsDirectory: fileURLToPath(new URL('../uploads/imports/', import.meta.url)),
+  });
+  const reconciliationRouter = createReconciliationRouter({
+    controller: new ReconciliationController(reconciliationService),
+    authenticate,
+    csrfProtection,
+  });
   const documentsService = new DocumentsService({
     repository: documentsRepository,
     auditService,
@@ -152,6 +172,7 @@ export async function createServerRuntime() {
     payablesRouter,
     paymentsRouter,
     accountingRouter,
+    reconciliationRouter,
   });
 
   return {

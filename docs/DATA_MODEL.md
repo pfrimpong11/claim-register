@@ -67,9 +67,11 @@ For the exercise a payment belongs to exactly one payable. Reversal transitions 
 
 ### Reconciliation
 
-- `transaction_imports`: id, source_type, settlement_account_id, source_file_name, status, row counts, imported_by/at, error_summary nullable.
+- `transaction_imports`: id, source_type, settlement_account_id, source_file_name, protected temporary storage path, status, total/imported/duplicate/failed row counts, imported_by/at, bounded error_summary nullable.
 - `external_transactions`: id, settlement_account_id, import_id nullable, external_reference, transaction_date, value_date nullable, transaction_type, amount, currency_code, description nullable, source_type, reconciliation_status, timestamps.
 - `reconciliation_matches`: id, payment_id, external_transaction_id, matched_amount, currency_code, status, match_type, matched_by/at, notes nullable, reversed_at/by nullable.
+
+Import files are temporary worker inputs under protected `server/uploads/imports/`; they are not served statically and are deleted after successful or partially successful processing. PostgreSQL import state and external transactions remain authoritative. Active match totals determine payment/external unmatched values. Reversal changes the match to `REVERSED` with actor, time, and reason rather than deleting it.
 
 ### Governance
 

@@ -21,6 +21,7 @@ import { createHealthRouter } from './modules/health/health.routes.js';
  * @param {import('express').Router} [input.payablesRouter]
  * @param {import('express').Router} [input.paymentsRouter]
  * @param {import('express').Router} [input.accountingRouter]
+ * @param {import('express').Router} [input.reconciliationRouter]
  */
 export function createApp({
   config,
@@ -34,6 +35,7 @@ export function createApp({
   payablesRouter,
   paymentsRouter,
   accountingRouter,
+  reconciliationRouter,
 }) {
   const app = express();
   app.disable('x-powered-by');
@@ -73,6 +75,7 @@ export function createApp({
   if (payablesRouter) app.use('/api/v1', payablesRouter);
   if (paymentsRouter) app.use('/api/v1', paymentsRouter);
   if (accountingRouter) app.use('/api/v1', accountingRouter);
+  if (reconciliationRouter) app.use('/api/v1', reconciliationRouter);
   app.use(notFound);
   app.use(errorHandler);
 

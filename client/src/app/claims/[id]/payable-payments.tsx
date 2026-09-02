@@ -20,6 +20,9 @@ type Payment = {
   settlementAmount: string;
   settlementCurrencyCode: string;
   status: string;
+  reconciliationStatus: string;
+  reconciliationMatchedAmount: string;
+  reconciliationUnmatchedAmount: string;
   settlementAccount: Account;
   journals?: Journal[];
 };
@@ -144,6 +147,13 @@ export function PayablePayments({
               </strong>{' '}
               × {p.fxRate} = {p.settlementCurrencyCode} {p.settlementAmount} — {p.status} via{' '}
               {p.settlementAccount.name}
+              {p.status === 'SUCCESSFUL' ? (
+                <span>
+                  {' '}
+                  · Reconciliation: {p.reconciliationStatus.replaceAll('_', ' ')} (
+                  {p.paymentCurrencyCode} {p.reconciliationUnmatchedAmount} unmatched)
+                </span>
+              ) : null}
               {p.journals?.map((j) => (
                 <span key={j.journalNumber}>
                   {' '}

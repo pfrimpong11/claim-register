@@ -61,7 +61,9 @@ POST   /payments/:id/reverse
 
 GET    /settlement-accounts
 POST   /transaction-imports
+GET    /transaction-imports
 GET    /external-transactions
+GET    /reconciliation-payments
 POST   /reconciliation-matches
 POST   /reconciliation-matches/:id/reverse
 
@@ -79,6 +81,11 @@ For the exercise, payable creation always creates an `INDEMNITY` draft in the cl
 Payment creation accepts `paymentDate`, decimal-string `paymentAmount`, `paymentCurrencyCode`, canonical decimal-string `fxRate`, `settlementAccountId`, and an optional reference. The server derives and stores `settlementAmount` in claim currency using half-up ISO currency rounding. Same-currency payments require rate `1`. Creation, approval, success, and reversal require `Idempotency-Key`; reusing a key with a different request returns `409`.
 
 Marking a payment successful locks its approved payable, rechecks successful settlement totals, and atomically posts the Claims Payable/Settlement Assets journal. Reversal records its actor/reason and posts a journal linked to the original; it never deletes or rewrites the historical payment facts.
+
+Transaction imports accept a CSV file plus `settlementAccountId` and `sourceType` as multipart form data and return `202`. The durable import record progresses through pending/processing/completed states while the shared worker validates each row. Required headers are `externalReference,transactionDate,valueDate,transactionType,amount,currencyCode,description`. Valid rows continue when another row is malformed or duplicated, and bounded row-level errors remain available on the import record.
+
+Manual matching accepts `paymentId`, `externalTransactionId`, decimal-string `matchedAmount`, and optional notes. Match and reverse endpoints require `Idempotency-Key`. A successful payment must share the external debit's settlement account and payment currency; locked serializable checks prevent either side from being overmatched. Reversing a match preserves it as history and recalculates the external transaction status.
+Payments with active reconciliation matches must be unmatched before the payment itself can be reversed, preventing external evidence from remaining matched to a reversed execution.
 
 ## 4. Claims register query
 

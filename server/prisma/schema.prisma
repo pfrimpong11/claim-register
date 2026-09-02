@@ -115,6 +115,42 @@ enum PaymentStatus {
   REVERSED
 }
 
+enum ExternalTransactionType {
+  DEBIT
+  CREDIT
+}
+
+enum ExternalTransactionSource {
+  BANK_STATEMENT
+  MOMO_STATEMENT
+  GATEWAY_WEBHOOK
+  MANUAL_IMPORT
+}
+
+enum TransactionImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+}
+
+enum ReconciliationStatus {
+  UNMATCHED
+  PARTIALLY_MATCHED
+  MATCHED
+}
+
+enum ReconciliationMatchStatus {
+  ACTIVE
+  REVERSED
+}
+
+enum ReconciliationMatchType {
+  MANUAL
+  AUTO
+}
+
 model User {
   id                 String               @id @default(uuid()) @db.Uuid
   email              String               @unique @db.VarChar(320)
@@ -144,6 +180,9 @@ model User {
   succeededPayments ClaimPayment[] @relation("PaymentSuccessActor")
   reversedPayments ClaimPayment[] @relation("PaymentReverser")
   idempotencyKeys IdempotencyKey[]
+  transactionImports TransactionImport[] @relation("TransactionImportActor")
+  reconciliationMatches ReconciliationMatch[] @relation("ReconciliationMatcher")
+  reversedReconciliationMatches ReconciliationMatch[] @relation("ReconciliationReverser")
 
   @@map("users")
 }
@@ -163,6 +202,8 @@ model Currency {
   settlementAccounts SettlementAccount[]
   paymentCurrencies ClaimPayment[] @relation("PaymentCurrency")
   settlementCurrencies ClaimPayment[] @relation("SettlementCurrency")
+  externalTransactions ExternalTransaction[]
+  reconciliationMatches ReconciliationMatch[]
 
   @@map("currencies")
 }
@@ -426,6 +467,8 @@ model SettlementAccount {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   currency Currency @relation(fields: [currencyCode], references: [code])
   payments ClaimPayment[]
+  transactionImports TransactionImport[]
+  externalTransactions ExternalTransaction[]
   @@index([status, accountType, currencyCode])
   @@map("settlement_accounts")
 }
@@ -465,10 +508,84 @@ model ClaimPayment {
   approver User? @relation("PaymentApprover", fields: [approvedBy], references: [id])
   successActor User? @relation("PaymentSuccessActor", fields: [succeededBy], references: [id])
   reverser User? @relation("PaymentReverser", fields: [reversedBy], references: [id])
+  reconciliationMatches ReconciliationMatch[]
   @@index([payableId, status, paymentDate])
   @@index([claimId, status])
   @@index([settlementAccountId, paymentDate])
   @@map("claim_payments")
+}
+
+model TransactionImport {
+  id String @id @default(uuid()) @db.Uuid
+  sourceType ExternalTransactionSource @map("source_type")
+  settlementAccountId String @map("settlement_account_id") @db.Uuid
+  sourceFileName String @map("source_file_name") @db.VarChar(255)
+  storagePath String @map("storage_path") @db.VarChar(500)
+  status TransactionImportStatus @default(PENDING)
+  totalRows Int @default(0) @map("total_rows")
+  importedRows Int @default(0) @map("imported_rows")
+  duplicateRows Int @default(0) @map("duplicate_rows")
+  failedRows Int @default(0) @map("failed_rows")
+  errorSummary Json? @map("error_summary")
+  importedBy String @map("imported_by") @db.Uuid
+  importedAt DateTime? @map("imported_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  settlementAccount SettlementAccount @relation(fields: [settlementAccountId], references: [id], onDelete: Restrict)
+  importer User @relation("TransactionImportActor", fields: [importedBy], references: [id], onDelete: Restrict)
+  transactions ExternalTransaction[]
+  @@index([status, createdAt])
+  @@index([settlementAccountId, createdAt])
+  @@map("transaction_imports")
+}
+
+model ExternalTransaction {
+  id String @id @default(uuid()) @db.Uuid
+  settlementAccountId String @map("settlement_account_id") @db.Uuid
+  importId String? @map("import_id") @db.Uuid
+  externalReference String @map("external_reference") @db.VarChar(200)
+  transactionDate DateTime @map("transaction_date") @db.Date
+  valueDate DateTime? @map("value_date") @db.Date
+  transactionType ExternalTransactionType @map("transaction_type")
+  amount Decimal @db.Decimal(19, 4)
+  currencyCode String @map("currency_code") @db.Char(3)
+  description String? @db.VarChar(500)
+  sourceType ExternalTransactionSource @map("source_type")
+  reconciliationStatus ReconciliationStatus @default(UNMATCHED) @map("reconciliation_status")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  settlementAccount SettlementAccount @relation(fields: [settlementAccountId], references: [id], onDelete: Restrict)
+  import TransactionImport? @relation(fields: [importId], references: [id], onDelete: Restrict)
+  currency Currency @relation(fields: [currencyCode], references: [code])
+  matches ReconciliationMatch[]
+  @@unique([settlementAccountId, externalReference, transactionDate, amount])
+  @@index([settlementAccountId, currencyCode, reconciliationStatus, transactionDate])
+  @@index([importId])
+  @@map("external_transactions")
+}
+
+model ReconciliationMatch {
+  id String @id @default(uuid()) @db.Uuid
+  paymentId String @map("payment_id") @db.Uuid
+  externalTransactionId String @map("external_transaction_id") @db.Uuid
+  matchedAmount Decimal @map("matched_amount") @db.Decimal(19, 4)
+  currencyCode String @map("currency_code") @db.Char(3)
+  status ReconciliationMatchStatus @default(ACTIVE)
+  matchType ReconciliationMatchType @default(MANUAL) @map("match_type")
+  matchedBy String @map("matched_by") @db.Uuid
+  matchedAt DateTime @default(now()) @map("matched_at") @db.Timestamptz(6)
+  notes String? @db.VarChar(500)
+  reversedBy String? @map("reversed_by") @db.Uuid
+  reversedAt DateTime? @map("reversed_at") @db.Timestamptz(6)
+  reversalReason String? @map("reversal_reason") @db.VarChar(500)
+  payment ClaimPayment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  externalTransaction ExternalTransaction @relation(fields: [externalTransactionId], references: [id], onDelete: Restrict)
+  currency Currency @relation(fields: [currencyCode], references: [code])
+  matcher User @relation("ReconciliationMatcher", fields: [matchedBy], references: [id], onDelete: Restrict)
+  reverser User? @relation("ReconciliationReverser", fields: [reversedBy], references: [id], onDelete: Restrict)
+  @@index([paymentId, status])
+  @@index([externalTransactionId, status])
+  @@map("reconciliation_matches")
 }
 
 model PaymentNumberSequence {

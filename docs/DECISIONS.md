@@ -138,11 +138,14 @@ Physical deletion after deactivation is asynchronous and retryable. PostgreSQL r
 
 **Why:** This is the smallest auditable reversal model for the exercise. The original execution remains reproducible, paid totals exclude the reversed status, and the ledger is corrected append-only through the linked reversing journal.
 
-## What we would do with more time
+## ADR-023: Durable row-tolerant reconciliation imports
 
-- Cloud hosting provider and production secret manager.
-- External identity provider versus local credentials beyond the exercise.
-- Real payment-provider integrations.
-- Full functional/base-currency accounting, FX gain/loss and revaluation, configurable posting rules, accounting periods, close controls, and IFRS 17 integration.
-- Maker-checker separation, approval chains, and currency-specific monetary authority limits.
-- Reserve movements, assessments/excess workflow, advanced document workflow/OCR/versioning, recoveries/reinsurance, richer party/policy administration, payment allocations, and automated reconciliation/provider integrations.
+**Decision:** CSV uploads create a PostgreSQL import record before a bounded BullMQ job processes them. Rows are validated independently; valid unique rows are retained while duplicates and malformed rows are counted and reported. Temporary CSV inputs live only under the protected server uploads tree and are removed after completed processing. Pending/processing imports are re-enqueued on startup.
+
+**Why:** A statement can contain one bad or repeated row without losing all valid settlement evidence. PostgreSQL remains the source of truth while the shared embedded/detachable worker keeps request latency bounded and supports recovery after Redis or process interruption.
+
+## ADR-024: Reconciliation matches are partial, atomic, and reversible
+
+**Decision:** Manual matches use the payment's original payment currency and settlement account, require an external debit, and may cover a partial amount. Serializable transactions lock both sides and reject overmatching. Unmatch retains the original match as `REVERSED`; payment execution status is never changed by reconciliation.
+
+**Why:** This supports bank and mobile-money evidence without provider-specific rules, preserves history, and keeps execution confirmation independent from reconciliation evidence as required by the exercise.

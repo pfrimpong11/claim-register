@@ -50,6 +50,9 @@ export function DashboardShell() {
         {user.permissions.includes('accounting.view') ? (
           <Link href="/accounting">Accounting</Link>
         ) : null}
+        {user.permissions.includes('reconciliation.view') ? (
+          <Link href="/reconciliation">Reconciliation</Link>
+        ) : null}
         {user.permissions.includes('audit.view') ? <span>Audit</span> : null}
       </nav>
       {error ? <p role="alert">{error}</p> : null}

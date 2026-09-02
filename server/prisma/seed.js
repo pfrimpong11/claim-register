@@ -238,6 +238,49 @@ async function seed() {
         update: { name: account.name, accountType: account.accountType, isActive: true },
       });
     }
+    const seededSettlementAccounts = await transaction.settlementAccount.findMany({
+      where: { code: { in: ['GCB-GHS', 'MTN-MOMO-GHS'] } },
+    });
+    for (const fixture of [
+      {
+        id: '60000000-0000-4000-8000-000000000001',
+        accountCode: 'GCB-GHS',
+        externalReference: 'GCB-DEMO-20260901-001',
+        transactionDate: new Date('2026-09-01'),
+        amount: '1250.00',
+        sourceType: 'BANK_STATEMENT',
+        description: 'Demo bank claim payment debit',
+      },
+      {
+        id: '60000000-0000-4000-8000-000000000002',
+        accountCode: 'MTN-MOMO-GHS',
+        externalReference: 'MOMO-DEMO-20260901-001',
+        transactionDate: new Date('2026-09-01'),
+        amount: '500.00',
+        sourceType: 'MOMO_STATEMENT',
+        description: 'Demo mobile-money claim payment debit',
+      },
+    ]) {
+      const settlementAccount = seededSettlementAccounts.find(
+        (account) => account.code === fixture.accountCode,
+      );
+      if (!settlementAccount) throw new Error(`Missing settlement account ${fixture.accountCode}`);
+      await transaction.externalTransaction.upsert({
+        where: { id: fixture.id },
+        create: {
+          id: fixture.id,
+          settlementAccountId: settlementAccount.id,
+          externalReference: fixture.externalReference,
+          transactionDate: fixture.transactionDate,
+          transactionType: 'DEBIT',
+          amount: fixture.amount,
+          currencyCode: 'GHS',
+          sourceType: fixture.sourceType,
+          description: fixture.description,
+        },
+        update: { description: fixture.description },
+      });
+    }
     for (const account of [
       {
         code: 'GCB-GHS',

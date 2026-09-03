@@ -53,6 +53,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:validate --prefix server
+      - run: npm run db:generate --prefix server
       - run: npm run db:deploy --prefix server
       - run: npm run db:seed --prefix server
       - run: npm run verify

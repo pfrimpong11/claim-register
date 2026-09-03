@@ -25,7 +25,10 @@ export function errorHandler(error, request, response, _next) {
       status: 400,
     });
   }
-  if (error?.code === 'P2034') {
+  if (
+    error?.code === 'P2034' ||
+    (error?.code === 'P2010' && String(error?.meta?.code) === '40001')
+  ) {
     error = new AppError({
       code: 'CONCURRENT_WRITE_CONFLICT',
       message:

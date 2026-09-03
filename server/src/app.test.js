@@ -105,4 +105,18 @@ describe('application foundation', () => {
     expect(response.body.error.code).toBe('CONCURRENT_WRITE_CONFLICT');
     expect(response.body.error.message).not.toContain('database details');
   });
+
+  it('maps a raw-query PostgreSQL serialization conflict to a safe retryable response', async () => {
+    const app = express();
+    app.get('/raw-conflict', () => {
+      throw Object.assign(new Error('raw database details'), {
+        code: 'P2010',
+        meta: { code: '40001' },
+      });
+    });
+    app.use(errorHandler);
+    const response = await request(app).get('/raw-conflict').expect(409);
+    expect(response.body.error.code).toBe('CONCURRENT_WRITE_CONFLICT');
+    expect(response.body.error.message).not.toContain('raw database details');
+  });
 });

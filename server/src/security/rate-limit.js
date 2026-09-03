@@ -6,13 +6,14 @@ import { RedisStore } from 'rate-limit-redis';
  * @param {import('ioredis').default} input.redis
  * @param {number} input.windowMs
  * @param {number} input.limit
+ * @param {string} [input.namespace]
  */
-export function createGlobalRateLimiter({ redis, windowMs, limit }) {
+export function createGlobalRateLimiter({ redis, windowMs, limit, namespace }) {
   return createRedisRateLimiter({
     redis,
     windowMs,
     limit,
-    prefix: 'rl:global:',
+    prefix: rateLimitPrefix(namespace, 'global'),
     passOnStoreError: true,
   });
 }
@@ -22,15 +23,21 @@ export function createGlobalRateLimiter({ redis, windowMs, limit }) {
  * @param {import('ioredis').default} input.redis
  * @param {number} input.windowMs
  * @param {number} input.limit
+ * @param {string} [input.namespace]
  */
-export function createLoginRateLimiter({ redis, windowMs, limit }) {
+export function createLoginRateLimiter({ redis, windowMs, limit, namespace }) {
   return createRedisRateLimiter({
     redis,
     windowMs,
     limit,
-    prefix: 'rl:login:',
+    prefix: rateLimitPrefix(namespace, 'login'),
     passOnStoreError: false,
   });
+}
+
+/** @param {string|undefined} namespace @param {string} scope */
+function rateLimitPrefix(namespace, scope) {
+  return namespace ? `rl:${namespace}:${scope}:` : `rl:${scope}:`;
 }
 
 /**

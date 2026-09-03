@@ -68,7 +68,9 @@ POST   /reconciliation-matches
 POST   /reconciliation-matches/:id/reverse
 
 GET    /reports/claims-summary
-GET    /reports/claims-export
+POST   /reports/claims-exports
+GET    /reports/claims-exports/:id
+GET    /reports/claims-exports/:id/download
 GET    /accounting/journals
 GET    /accounting/journals/:id
 GET    /audit-logs
@@ -102,3 +104,5 @@ Deactivation immediately removes the document from active API results and record
 ## 5. Concurrency
 
 Use an optimistic version field for ordinary editable records. Financial transitions additionally use a database transaction and locked/serializable revalidation. Return `409` when a stale or conflicting state prevents completion.
+
+Claims exports accept the same validated query parameters as `GET /claims`. Creation returns `202`; the client polls the export resource and downloads the protected CSV after worker completion. The worker reads through the canonical claims service in bounded pages, quotes every cell, neutralizes spreadsheet formulas, and retains the generated file for 24 hours.

@@ -151,6 +151,13 @@ enum ReconciliationMatchType {
   AUTO
 }
 
+enum ReportExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model User {
   id                 String               @id @default(uuid()) @db.Uuid
   email              String               @unique @db.VarChar(320)
@@ -183,6 +190,7 @@ model User {
   transactionImports TransactionImport[] @relation("TransactionImportActor")
   reconciliationMatches ReconciliationMatch[] @relation("ReconciliationMatcher")
   reversedReconciliationMatches ReconciliationMatch[] @relation("ReconciliationReverser")
+  reportExports ReportExport[]
 
   @@map("users")
 }
@@ -586,6 +594,26 @@ model ReconciliationMatch {
   @@index([paymentId, status])
   @@index([externalTransactionId, status])
   @@map("reconciliation_matches")
+}
+
+model ReportExport {
+  id String @id @default(uuid()) @db.Uuid
+  reportType String @map("report_type") @db.VarChar(100)
+  filters Json
+  status ReportExportStatus @default(PENDING)
+  filePath String? @map("file_path") @db.VarChar(500)
+  fileName String? @map("file_name") @db.VarChar(255)
+  rowCount Int @default(0) @map("row_count")
+  errorMessage String? @map("error_message") @db.VarChar(1000)
+  requestedBy String @map("requested_by") @db.Uuid
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  requester User @relation(fields: [requestedBy], references: [id], onDelete: Restrict)
+  @@index([requestedBy, createdAt])
+  @@index([status, createdAt])
+  @@map("report_exports")
 }
 
 model PaymentNumberSequence {

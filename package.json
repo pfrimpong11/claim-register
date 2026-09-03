@@ -15,11 +15,13 @@
     "check": "npm run check --prefix client && npm run check --prefix server",
     "lint": "npm run lint --prefix client && npm run lint --prefix server",
     "test": "npm run test --prefix client && npm run test --prefix server",
+    "test:e2e": "playwright test",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "verify": "npm run format:check && npm run lint && npm run check && npm run test && npm run build"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "concurrently": "^9.2.1",
     "prettier": "^3.6.2"
   },

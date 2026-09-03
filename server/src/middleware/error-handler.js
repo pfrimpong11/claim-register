@@ -25,6 +25,14 @@ export function errorHandler(error, request, response, _next) {
       status: 400,
     });
   }
+  if (error?.code === 'P2034') {
+    error = new AppError({
+      code: 'CONCURRENT_WRITE_CONFLICT',
+      message:
+        'The record changed during this request. Retry the operation with the same idempotency key.',
+      status: 409,
+    });
+  }
   const known = error instanceof AppError;
   const status = known ? error.status : 500;
   const code = known ? error.code : 'INTERNAL_SERVER_ERROR';

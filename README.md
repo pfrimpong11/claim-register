@@ -36,6 +36,7 @@ A focused, production-minded claims register for recording insurance claims, app
 - [API conventions](docs/API_CONTRACT.md)
 - [Architecture decisions](docs/DECISIONS.md)
 - [Local development](docs/LOCAL_DEVELOPMENT.md)
+- [Operations and recovery](docs/OPERATIONS.md)
 
 ## Repository layout
 
@@ -59,6 +60,8 @@ The default server command starts the HTTP API and BullMQ worker in the same run
 ## Local start
 
 Local development requires PostgreSQL and Redis but does not require Docker. Follow [Local development](docs/LOCAL_DEVELOPMENT.md) for the complete setup. In summary, install dependencies with `npm install`, configure the client and server environment files, and run `npm run dev`. This starts the frontend and backend, including the backend worker.
+
+The deterministic development seed provides five permission-specific accounts under `@claims.local` and 15 fictional sample claims. The dataset demonstrates every exercise status and currency, indemnity payables, draft/approved/successful/reversed payments, stored FX facts, balanced and reversing journals, protected documents, and bank/mobile-money reconciliation. No password is committed: set `SEED_DEFAULT_PASSWORD` before seeding. Run `npm run verify` for static checks, unit/integration tests, and builds; the documented Playwright command exercises the seeded claim-to-payment journey in a browser.
 
 ## With more time
 

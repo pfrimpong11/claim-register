@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { apiRequest } from '@/lib/api';
+import { API_BASE_URL, apiRequest, readCookie } from '@/lib/api';
 type Claim = {
   id: string;
   claimNumber: string;
@@ -23,6 +23,7 @@ type Result = {
 export function ClaimsRegister() {
   const [result, setResult] = useState<Result>();
   const [error, setError] = useState('');
+  const [exporting, setExporting] = useState(false);
   const searchParams = useSearchParams();
   const query = searchParams.toString();
   useEffect(() => {
@@ -35,6 +36,41 @@ export function ClaimsRegister() {
     next.set('page', String(page));
     return `/claims?${next}`;
   };
+  async function exportClaims() {
+    setExporting(true);
+    setError('');
+    try {
+      const created = await apiRequest<{ data: { id: string } }>(
+        `/reports/claims-exports?${query}`,
+        { method: 'POST', headers: { 'X-CSRF-Token': readCookie('claims_csrf') ?? '' } },
+      );
+      let status: { status: string; errorMessage?: string };
+      do {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        status = (
+          await apiRequest<{ data: { status: string; errorMessage?: string } }>(
+            `/reports/claims-exports/${created.data.id}`,
+          )
+        ).data;
+      } while (['PENDING', 'PROCESSING'].includes(status.status));
+      if (status.status !== 'COMPLETED') throw new Error(status.errorMessage ?? 'Export failed.');
+      const response = await fetch(
+        `${API_BASE_URL}/reports/claims-exports/${created.data.id}/download`,
+        { credentials: 'include' },
+      );
+      if (!response.ok) throw new Error('The completed export could not be downloaded.');
+      const url = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `claims-register-${new Date().toISOString().slice(0, 10)}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Export failed.');
+    } finally {
+      setExporting(false);
+    }
+  }
   return (
     <section className="wide">
       <div className="toolbar">
@@ -42,7 +78,12 @@ export function ClaimsRegister() {
           <p className="eyebrow">Claims register</p>
           <h1>Claims</h1>
         </div>
-        <Link href="/claims/new">Register claim</Link>
+        <div>
+          <button type="button" disabled={exporting} onClick={() => void exportClaims()}>
+            {exporting ? 'Preparing export…' : 'Export CSV'}
+          </button>{' '}
+          <Link href="/claims/new">Register claim</Link>
+        </div>
       </div>
       <form action="/claims" className="filter-grid">
         <label>

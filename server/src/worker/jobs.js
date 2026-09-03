@@ -4,4 +4,5 @@ export const JOB_NAMES = Object.freeze({
   FOUNDATION_PING: 'foundation.ping',
   DOCUMENT_CLEANUP: 'documents.cleanup',
   TRANSACTION_IMPORT: 'reconciliation.transaction-import',
+  CLAIMS_EXPORT: 'reports.claims-export',
 });

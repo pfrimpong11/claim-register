@@ -76,6 +76,7 @@ Import files are temporary worker inputs under protected `server/uploads/imports
 ### Governance
 
 - `audit_logs`: id, actor_user_id nullable, action, entity_type, entity_id, old_values jsonb nullable, new_values jsonb nullable, correlation_id, ip_address nullable, user_agent nullable, occurred_at.
+- `report_exports`: id, report_type, validated filters jsonb, status, protected file path/name nullable, row count, bounded error nullable, requested_by, completion/expiry timestamps.
 
 ### Lightweight general ledger
 

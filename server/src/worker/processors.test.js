@@ -30,4 +30,17 @@ describe('worker processor registry', () => {
     ).resolves.toEqual({ ok: true });
     expect(documentCleanup.process).toHaveBeenCalledOnce();
   });
+
+  it('routes claims exports through the shared worker', async () => {
+    const claimsExport = { process: vi.fn().mockResolvedValue({ ok: true }) };
+    const processJob = createJobProcessor({ info: vi.fn() }, { claimsExport });
+    await expect(
+      processJob({
+        id: 'job-4',
+        name: JOB_NAMES.CLAIMS_EXPORT,
+        data: { exportId: '11111111-1111-4111-8111-111111111111' },
+      }),
+    ).resolves.toEqual({ ok: true });
+    expect(claimsExport.process).toHaveBeenCalledOnce();
+  });
 });

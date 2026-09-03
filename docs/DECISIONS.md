@@ -149,3 +149,21 @@ Physical deletion after deactivation is asynchronous and retryable. PostgreSQL r
 **Decision:** Manual matches use the payment's original payment currency and settlement account, require an external debit, and may cover a partial amount. Serializable transactions lock both sides and reject overmatching. Unmatch retains the original match as `REVERSED`; payment execution status is never changed by reconciliation.
 
 **Why:** This supports bank and mobile-money evidence without provider-specific rules, preserves history, and keeps execution confirmation independent from reconciliation evidence as required by the exercise.
+
+## ADR-025: Claims exports always use the bounded worker path
+
+**Decision:** Every CSV export is represented by a durable PostgreSQL record and processed by BullMQ in pages through the canonical claims service. Generated files use randomized server identifiers under the protected uploads tree, expire after 24 hours, and are delivered only through an authorized API. CSV cells are quoted and formula-prefixed values are neutralized.
+
+**Why:** One path avoids different filter or financial definitions between small and large exports, bounds API request work, supports detached workers and retries, and prevents spreadsheet injection or direct file exposure.
+
+## ADR-026: Exercise observability is bounded and provider-neutral
+
+**Decision:** Expose process-local, non-sensitive HTTP and memory counters alongside readiness, retain structured correlation-aware API/worker logs, and document the production alerting and trusted-scrape boundary. Do not add a hosted telemetry vendor to the exercise.
+
+**Why:** The exercise demonstrates useful operating signals without coupling the application to an unselected vendor. Production would aggregate per-instance metrics and logs through managed monitoring, tracing, dashboards, and alerts.
+
+## ADR-027: Demonstration records use an explicit namespace
+
+**Decision:** Seed 15 idempotent `DEMO`-numbered fictional claims without advancing or resetting normal claim, payment, or journal sequences. The sample covers the exercise statuses, currencies, payment lifecycle/FX, documents, journals, and reconciliation; seeded payables remain indemnity-only.
+
+**Why:** Evaluators can immediately inspect all statuses, currencies, documents, journals, and settlement sources, while later user-created records retain safe monotonic numbering and remain distinguishable from fixtures.

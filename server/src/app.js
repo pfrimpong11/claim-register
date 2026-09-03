@@ -6,6 +6,7 @@ import hpp from 'hpp';
 import { pinoHttp } from 'pino-http';
 import { errorHandler, notFound } from './middleware/error-handler.js';
 import { requestContext } from './middleware/request-context.js';
+import { createMetricsMiddleware } from './shared/metrics.js';
 import { createHealthRouter } from './modules/health/health.routes.js';
 
 /**
@@ -22,6 +23,9 @@ import { createHealthRouter } from './modules/health/health.routes.js';
  * @param {import('express').Router} [input.paymentsRouter]
  * @param {import('express').Router} [input.accountingRouter]
  * @param {import('express').Router} [input.reconciliationRouter]
+ * @param {import('express').Router} [input.reportsRouter]
+ * @param {import('express').Router} [input.auditRouter]
+ * @param {import('./shared/metrics.js').MetricsRegistry} [input.metrics]
  */
 export function createApp({
   config,
@@ -36,12 +40,16 @@ export function createApp({
   paymentsRouter,
   accountingRouter,
   reconciliationRouter,
+  reportsRouter,
+  auditRouter,
+  metrics,
 }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.TRUST_PROXY);
 
   app.use(requestContext);
+  if (metrics) app.use(createMetricsMiddleware(metrics));
   app.use(
     pinoHttp({
       logger,
@@ -76,6 +84,8 @@ export function createApp({
   if (paymentsRouter) app.use('/api/v1', paymentsRouter);
   if (accountingRouter) app.use('/api/v1', accountingRouter);
   if (reconciliationRouter) app.use('/api/v1', reconciliationRouter);
+  if (reportsRouter) app.use('/api/v1', reportsRouter);
+  if (auditRouter) app.use('/api/v1', auditRouter);
   app.use(notFound);
   app.use(errorHandler);
 

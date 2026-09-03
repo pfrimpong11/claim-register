@@ -20,7 +20,7 @@ Local development runs directly on the host; Docker is not required or used.
 7. Run `npm run db:generate --prefix server`, `npm run db:deploy --prefix server`, and `npm run db:seed --prefix server`.
 8. Run `npm run dev` at the root to start the client and server. The server starts its embedded worker automatically.
 
-The seed is deterministic and safe to rerun outside production. It creates development accounts under `@claims.local`; their shared password is read only from `SEED_DEFAULT_PASSWORD` and is never stored in the repository.
+The seed is deterministic and safe to rerun outside production. It creates development accounts under `@claims.local`; their shared password is read only from `SEED_DEFAULT_PASSWORD` and is never stored in the repository. It also creates 15 fictional sample claims spanning all three claim statuses and configured currencies, indemnity payables, payment lifecycle examples, same/cross-currency settlements, balanced and reversing journals, protected local documents, audit evidence, and bank/mobile-money reconciliation examples.
 
 ## Database migrations
 
@@ -62,6 +62,7 @@ To detach background processing, run the server with `START_EMBEDDED_WORKER=fals
 - API liveness: `http://localhost:4000/api/v1/health/live`
 - API readiness: `http://localhost:4000/api/v1/health/ready`
 - Full quality suite: `npm run verify`
+- Browser acceptance journey: set `E2E_PASSWORD` to the development seed password, install Chromium once with `npx playwright install chromium`, then run `npm run test:e2e`.
 
 Readiness requires PostgreSQL and Redis. When the embedded worker is enabled, it also requires the worker to be ready.
 

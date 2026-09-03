@@ -2,7 +2,7 @@ import { JOB_NAMES } from './jobs.js';
 
 /**
  * @param {import('pino').Logger} logger
- * @param {{documentCleanup?:import('../modules/documents/document-cleanup.service.js').DocumentCleanupService,csvImport?:import('../modules/reconciliation/csv-import.service.js').CsvImportService}} [services]
+ * @param {{documentCleanup?:import('../modules/documents/document-cleanup.service.js').DocumentCleanupService,csvImport?:import('../modules/reconciliation/csv-import.service.js').CsvImportService,claimsExport?:import('../modules/reports/claims-export.service.js').ClaimsExportService}} [services]
  * @returns {(job: import('bullmq').Job) => Promise<unknown>}
  */
 export function createJobProcessor(logger, services = {}) {
@@ -18,6 +18,9 @@ export function createJobProcessor(logger, services = {}) {
       case JOB_NAMES.TRANSACTION_IMPORT:
         if (!services.csvImport) throw new Error('Transaction import processor is unavailable.');
         return services.csvImport.process(job.data);
+      case JOB_NAMES.CLAIMS_EXPORT:
+        if (!services.claimsExport) throw new Error('Claims export processor is unavailable.');
+        return services.claimsExport.process(job.data);
       default:
         throw new Error(`Unsupported job type: ${job.name}`);
     }

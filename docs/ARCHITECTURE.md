@@ -203,6 +203,7 @@ Docker is deployment packaging, not the development workflow. Production-oriente
 
 - Unit: status derivation, outstanding calculations, FX, rounding, transition policies.
 - Integration: PostgreSQL repositories, migrations, RBAC, idempotency, audits, reconciliation bounds, automatic journals, and debit/credit balance.
+- Operations: correlation-based structured logs, dependency readiness, non-sensitive HTTP/process metrics, worker lifecycle events, alerting guidance, and version-matched PostgreSQL backup/restore rehearsal.
 - Concurrency: two simultaneous payments cannot overpay one payable.
 - Contract: API responses match the shared/OpenAPI schema.
 - End-to-end: login; create claim; upload/view a claim document; approve indemnity; partial/final/cross-currency payment; rejected overpayment; mobile-money reconciliation; filters/export.

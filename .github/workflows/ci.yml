@@ -11,7 +11,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:17-alpine
@@ -43,6 +43,7 @@ jobs:
       START_EMBEDDED_WORKER: 'true'
       RUN_INFRA_INTEGRATION: 'true'
       SEED_DEFAULT_PASSWORD: ChangeMe-CI-Only-123!
+      E2E_PASSWORD: ChangeMe-CI-Only-123!
 
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +56,8 @@ jobs:
       - run: npm run db:deploy --prefix server
       - run: npm run db:seed --prefix server
       - run: npm run verify
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
       - run: npm audit --audit-level=high --omit=dev
 
   secret-scan:

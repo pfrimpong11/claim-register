@@ -7,6 +7,12 @@ import { DocumentCleanupService } from '../modules/documents/document-cleanup.se
 import { DocumentsRepository } from '../modules/documents/documents.repository.js';
 import { CsvImportService } from '../modules/reconciliation/csv-import.service.js';
 import { ReconciliationRepository } from '../modules/reconciliation/reconciliation.repository.js';
+import { AuditService } from '../modules/audit/audit.service.js';
+import { ClaimsRepository } from '../modules/claims/claims.repository.js';
+import { ClaimsService } from '../modules/claims/claims.service.js';
+import { ClaimsExportService } from '../modules/reports/claims-export.service.js';
+import { ReportsRepository } from '../modules/reports/reports.repository.js';
+import { fileURLToPath } from 'node:url';
 import { WorkerRuntime } from './runtime.js';
 
 const redis = createRedisConnection(env.REDIS_URL);
@@ -20,11 +26,17 @@ const csvImport = new CsvImportService({
   repository: new ReconciliationRepository(prisma),
   logger,
 });
+const claimsExport = new ClaimsExportService({
+  repository: new ReportsRepository(prisma),
+  claimsService: new ClaimsService(new ClaimsRepository(prisma), new AuditService(prisma)),
+  exportsDirectory: fileURLToPath(new URL('../../uploads/exports/', import.meta.url)),
+  logger,
+});
 const workerRuntime = new WorkerRuntime({
   connection: redis,
   logger,
   concurrency: env.WORKER_CONCURRENCY,
-  services: { documentCleanup, csvImport },
+  services: { documentCleanup, csvImport, claimsExport },
 });
 let shuttingDown = false;
 

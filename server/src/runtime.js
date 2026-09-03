@@ -1,12 +1,16 @@
 import { createApp } from './app.js';
 import { Queue } from 'bullmq';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import { env } from './config/env.js';
 import { createPrismaClient } from './infrastructure/prisma.js';
 import { createRedisConnection, ensureRedisConnected } from './infrastructure/redis.js';
 import { createAuthenticate } from './middleware/authenticate.js';
 import { createCsrfProtection } from './middleware/csrf.js';
 import { AuditService } from './modules/audit/audit.service.js';
+import { AuditController } from './modules/audit/audit.controller.js';
+import { AuditRepository } from './modules/audit/audit.repository.js';
+import { createAuditRouter } from './modules/audit/audit.routes.js';
 import { AuthController } from './modules/auth/auth.controller.js';
 import { AuthRepository } from './modules/auth/auth.repository.js';
 import { createAuthRouter } from './modules/auth/auth.routes.js';
@@ -41,20 +45,28 @@ import { ReconciliationController } from './modules/reconciliation/reconciliatio
 import { ReconciliationRepository } from './modules/reconciliation/reconciliation.repository.js';
 import { createReconciliationRouter } from './modules/reconciliation/reconciliation.routes.js';
 import { ReconciliationService } from './modules/reconciliation/reconciliation.service.js';
+import { ClaimsExportService } from './modules/reports/claims-export.service.js';
+import { ReportsController } from './modules/reports/reports.controller.js';
+import { ReportsRepository } from './modules/reports/reports.repository.js';
+import { createReportsRouter } from './modules/reports/reports.routes.js';
 import { createGlobalRateLimiter, createLoginRateLimiter } from './security/rate-limit.js';
 import { logger } from './shared/logger.js';
+import { MetricsRegistry } from './shared/metrics.js';
 import { createDocumentStorage } from './storage/document-storage.js';
 import { QUEUE_NAME } from './worker/jobs.js';
 import { WorkerRuntime } from './worker/runtime.js';
 
 export async function createServerRuntime() {
   const prisma = createPrismaClient(logger);
+  const metrics = new MetricsRegistry();
   await prisma.$connect();
   const redis = createRedisConnection(env.REDIS_URL);
   await ensureRedisConnected(redis);
   const documentStorage = createDocumentStorage(env);
   const documentsRepository = new DocumentsRepository(prisma);
   const queue = new Queue(QUEUE_NAME, { connection: redis });
+  const auditService = new AuditService(prisma);
+  const claimsService = new ClaimsService(new ClaimsRepository(prisma), auditService);
   const documentCleanup = new DocumentCleanupService({
     repository: documentsRepository,
     storage: documentStorage,
@@ -63,35 +75,47 @@ export async function createServerRuntime() {
   });
   const reconciliationRepository = new ReconciliationRepository(prisma);
   const csvImport = new CsvImportService({ repository: reconciliationRepository, queue, logger });
+  const claimsExport = new ClaimsExportService({
+    repository: new ReportsRepository(prisma),
+    claimsService,
+    queue,
+    logger,
+    exportsDirectory: fileURLToPath(new URL('../uploads/exports/', import.meta.url)),
+  });
 
   const workerRuntime = new WorkerRuntime({
     connection: redis,
     logger,
     concurrency: env.WORKER_CONCURRENCY,
-    services: { documentCleanup, csvImport },
+    services: { documentCleanup, csvImport, claimsExport },
   });
   if (env.START_EMBEDDED_WORKER) await workerRuntime.start();
   await documentCleanup.recoverPending();
   await csvImport.recoverPending();
+  await claimsExport.recoverPending();
 
   const healthService = new HealthService({
     database: { query: () => prisma.$queryRaw`SELECT 1` },
     redis,
     isWorkerReady: workerRuntime.isReady,
     workerRequired: env.START_EMBEDDED_WORKER,
+    metrics,
   });
+  const rateLimitNamespace =
+    process.env.RUN_INFRA_INTEGRATION === 'true' ? `test-${randomUUID()}` : undefined;
   const rateLimiter = createGlobalRateLimiter({
     redis,
     windowMs: env.GLOBAL_RATE_LIMIT_WINDOW_MS,
     limit: env.GLOBAL_RATE_LIMIT_MAX,
+    namespace: rateLimitNamespace,
   });
   const loginRateLimiter = createLoginRateLimiter({
     redis,
     windowMs: env.LOGIN_RATE_LIMIT_WINDOW_MS,
     limit: env.LOGIN_RATE_LIMIT_MAX,
+    namespace: rateLimitNamespace,
   });
   const authRepository = new AuthRepository(prisma);
-  const auditService = new AuditService(prisma);
   const authService = new AuthService({
     repository: authRepository,
     auditService,
@@ -115,7 +139,6 @@ export async function createServerRuntime() {
     authenticate,
     csrfProtection,
   });
-  const claimsService = new ClaimsService(new ClaimsRepository(prisma), auditService);
   const claimsRouter = createClaimsRouter({
     controller: new ClaimsController(claimsService),
     authenticate,
@@ -148,6 +171,15 @@ export async function createServerRuntime() {
     authenticate,
     csrfProtection,
   });
+  const reportsRouter = createReportsRouter({
+    controller: new ReportsController(claimsExport),
+    authenticate,
+    csrfProtection,
+  });
+  const auditRouter = createAuditRouter({
+    controller: new AuditController(new AuditRepository(prisma)),
+    authenticate,
+  });
   const documentsService = new DocumentsService({
     repository: documentsRepository,
     auditService,
@@ -173,6 +205,9 @@ export async function createServerRuntime() {
     paymentsRouter,
     accountingRouter,
     reconciliationRouter,
+    reportsRouter,
+    auditRouter,
+    metrics,
   });
 
   return {

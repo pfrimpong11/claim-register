@@ -5,6 +5,9 @@ export function createHealthRouter(healthService) {
   const router = Router();
 
   router.get('/live', (_request, response) => response.json(healthService.live()));
+  router.get('/metrics', (_request, response) =>
+    response.json(healthService.metrics?.snapshot() ?? {}),
+  );
   router.get('/ready', async (_request, response, next) => {
     try {
       const readiness = await healthService.ready();

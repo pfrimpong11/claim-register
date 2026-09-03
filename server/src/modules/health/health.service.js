@@ -5,12 +5,14 @@ export class HealthService {
    * @param {{ ping: () => Promise<unknown> }} dependencies.redis
    * @param {() => boolean} dependencies.isWorkerReady
    * @param {boolean} dependencies.workerRequired
+   * @param {import('../../shared/metrics.js').MetricsRegistry} [dependencies.metrics]
    */
-  constructor({ database, redis, isWorkerReady, workerRequired }) {
+  constructor({ database, redis, isWorkerReady, workerRequired, metrics }) {
     this.database = database;
     this.redis = redis;
     this.isWorkerReady = isWorkerReady;
     this.workerRequired = workerRequired;
+    this.metrics = metrics;
   }
 
   live() {

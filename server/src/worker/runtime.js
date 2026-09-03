@@ -8,7 +8,7 @@ export class WorkerRuntime {
    * @param {import('ioredis').default} input.connection
    * @param {import('pino').Logger} input.logger
    * @param {number} input.concurrency
-   * @param {{documentCleanup?:import('../modules/documents/document-cleanup.service.js').DocumentCleanupService,csvImport?:import('../modules/reconciliation/csv-import.service.js').CsvImportService}} [input.services]
+   * @param {{documentCleanup?:import('../modules/documents/document-cleanup.service.js').DocumentCleanupService,csvImport?:import('../modules/reconciliation/csv-import.service.js').CsvImportService,claimsExport?:import('../modules/reports/claims-export.service.js').ClaimsExportService}} [input.services]
    */
   constructor({ connection, logger, concurrency, services = {} }) {
     this.connection = connection;
@@ -35,6 +35,9 @@ export class WorkerRuntime {
     });
     this.worker.on('failed', (job, error) => {
       this.logger.error({ err: error, jobId: job?.id, jobName: job?.name }, 'worker job failed');
+    });
+    this.worker.on('completed', (job) => {
+      this.logger.info({ jobId: job.id, jobName: job.name }, 'worker job completed');
     });
 
     await this.worker.waitUntilReady();

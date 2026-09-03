@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '@/lib/api';
 import { ClaimDocuments } from './claim-documents';
 import { ClaimPayables } from './claim-payables';
+import { ClaimAudit } from './claim-audit';
 type StatusEvent = { id: string; toStatus: string; changedAt: string };
 type Claim = {
   claimNumber: string;
@@ -80,6 +81,7 @@ export function ClaimDetail({ id }: { id: string }) {
           </li>
         ))}
       </ul>
+      <ClaimAudit claimId={id} />
     </section>
   );
 }

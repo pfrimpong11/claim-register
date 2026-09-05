@@ -26,7 +26,7 @@ test('admin can inspect the seeded claim-to-payment journey', async ({ page }) =
   expect(failedResources).toEqual([]);
 
   await page.goto('/claims');
-  await expect(page.getByRole('heading', { name: 'Claims' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Claims', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'CLM-DEMO-2026-000012' }).click();
   await expect(page.getByRole('heading', { name: 'CLM-DEMO-2026-000012' })).toBeVisible();
   await expect(page.getByText('Settled and paid', { exact: true }).first()).toBeVisible();
@@ -38,9 +38,9 @@ test('admin can inspect the seeded claim-to-payment journey', async ({ page }) =
   await expect(page.getByText(/Reconciliation: MATCHED/).first()).toBeVisible();
 
   await page.goto('/reconciliation');
-  await expect(page.getByRole('heading', { name: /Reconciliation/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Reconciliation', exact: true })).toBeVisible();
   await page.goto('/accounting');
-  await expect(page.getByRole('heading', { name: /Journal/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Journal Entries', exact: true })).toBeVisible();
   await page.goto('/audit');
-  await expect(page.getByRole('heading', { name: /Audit/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Audit Logs', exact: true })).toBeVisible();
 });

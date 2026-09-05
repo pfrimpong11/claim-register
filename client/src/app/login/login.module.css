@@ -49,3 +49,90 @@
   gap: var(--space-4);
   margin-top: var(--space-4);
 }
+
+.main {
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  padding: 24px;
+  min-height: 100dvh;
+}
+.intro {
+  min-height: calc(100dvh - 48px);
+  width: 100%;
+  background: #132b40;
+  color: white;
+  border-radius: 24px;
+  padding: clamp(28px, 5vw, 76px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 60px;
+}
+.introBrand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-weight: 650;
+}
+.introBrand svg {
+  color: #a0eeeb;
+}
+.eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #a4d9de;
+}
+.intro h2 {
+  font-size: clamp(36px, 4vw, 60px);
+  letter-spacing: -0.045em;
+  margin: 20px 0;
+}
+.intro p {
+  color: #bacbd8;
+  max-width: 350px;
+  line-height: 1.9;
+  font-size: 14px;
+}
+.introFooter {
+  color: #a4d9de;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.card {
+  width: min(420px, 100%);
+  box-shadow: none;
+  border: 0;
+  background: transparent;
+  padding: 32px 20px;
+}
+.card h1 {
+  font-size: 30px;
+  letter-spacing: -0.04em;
+}
+.form {
+  gap: 22px;
+  margin-top: 24px;
+}
+@media (max-width: 850px) {
+  .main {
+    grid-template-columns: 1fr;
+    padding: 20px;
+    gap: 20px;
+  }
+  .intro {
+    min-height: auto;
+    padding: 26px;
+    gap: 24px;
+  }
+  .intro h2 {
+    font-size: 32px;
+  }
+  .intro p,
+  .introFooter {
+    display: none;
+  }
+  .card {
+    padding: 20px 8px;
+  }
+}

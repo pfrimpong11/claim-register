@@ -55,21 +55,25 @@ export default function PoliciesPage() {
         title="Policies"
         subtitle="Policies available for claim registration. New policies are added from the Create Claim form."
       />
-      <Card>
-        <FilterBar>
-          <FilterItem grow>
-            <Input
-              type="search"
-              placeholder="Search by policy number, name, or insured…"
-              aria-label="Search policies"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </FilterItem>
-        </FilterBar>
-      </Card>
-      {error ? <p role="alert">{error}</p> : null}
-      <Card flush>
+      <Card
+        title="Policy directory"
+        subtitle="Search the reference policies available for claim registration."
+        flush
+      >
+        <div style={{ padding: 20 }}>
+          <FilterBar>
+            <FilterItem grow>
+              <Input
+                type="search"
+                placeholder="Search by policy number, name, or insured…"
+                aria-label="Search policies"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </FilterItem>
+          </FilterBar>
+        </div>
+        {error ? <p role="alert">{error}</p> : null}
         <DataTable
           columns={COLUMNS}
           rows={policies ?? []}

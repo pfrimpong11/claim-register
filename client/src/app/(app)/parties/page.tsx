@@ -51,21 +51,25 @@ export default function PartiesPage() {
         title="Parties"
         subtitle="Insured parties and payees. New parties are added from the claim and payable forms."
       />
-      <Card>
-        <FilterBar>
-          <FilterItem grow>
-            <Input
-              type="search"
-              placeholder="Search parties by name…"
-              aria-label="Search parties"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </FilterItem>
-        </FilterBar>
-      </Card>
-      {error ? <p role="alert">{error}</p> : null}
-      <Card flush>
+      <Card
+        title="Party directory"
+        subtitle="Search by name to find an insured party or payee."
+        flush
+      >
+        <div style={{ padding: 20 }}>
+          <FilterBar>
+            <FilterItem grow>
+              <Input
+                type="search"
+                placeholder="Search parties by name…"
+                aria-label="Search parties"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </FilterItem>
+          </FilterBar>
+        </div>
+        {error ? <p role="alert">{error}</p> : null}
         <DataTable
           columns={COLUMNS}
           rows={parties ?? []}

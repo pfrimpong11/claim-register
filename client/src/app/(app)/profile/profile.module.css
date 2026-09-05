@@ -65,3 +65,43 @@
   border-radius: var(--radius-sm);
   padding: 1px var(--space-2);
 }
+
+.identity {
+  padding: 8px 0;
+}
+.avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: #132b40;
+  color: #a0eeeb;
+  flex-shrink: 0;
+}
+.identity > div {
+  min-width: 0;
+}
+.email {
+  overflow-wrap: anywhere;
+}
+.permissionGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 16px;
+}
+.permissionGroup {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+}
+.groupTitle {
+  font-size: 10px;
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+.permissionCode {
+  font-size: 11px;
+  padding: 5px 8px;
+  overflow-wrap: anywhere;
+}
+.permissionList {
+  gap: 8px;
+}

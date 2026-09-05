@@ -33,10 +33,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 30px;
-  height: 30px;
+  min-width: 34px;
+  height: 34px;
   padding: 0 var(--space-2);
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text-secondary);
@@ -56,4 +56,11 @@
 
 .active:hover:not(:disabled) {
   background: var(--color-primary-hover);
+}
+
+.summary {
+  font-size: 11px;
+}
+.controls {
+  flex-wrap: wrap;
 }

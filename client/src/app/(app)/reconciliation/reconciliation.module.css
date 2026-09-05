@@ -41,3 +41,64 @@
 .tabsWrap {
   padding: var(--space-2) var(--space-5) 0;
 }
+
+.formStack {
+  gap: 20px;
+}
+.formActions {
+  flex-wrap: wrap;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+}
+.cellStack {
+  gap: 6px;
+}
+.cellMeta {
+  font-size: 11px;
+}
+.matchRow {
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.matchList {
+  gap: 10px;
+}
+.errorList {
+  padding: 12px;
+  background: var(--color-danger-soft);
+  border-radius: 8px;
+  font-size: 11px;
+}
+.workflow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 20px;
+  gap: 20px;
+}
+.workflow a {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+.workflow a > span:first-child {
+  padding: 8px 10px;
+  background: var(--color-primary-soft);
+  border-radius: 8px;
+  color: var(--color-primary);
+  font-size: 10px;
+}
+.workflow small {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  margin-top: 4px;
+}
+@media (max-width: 760px) {
+  .workflow {
+    grid-template-columns: 1fr;
+  }
+}

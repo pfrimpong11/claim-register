@@ -52,6 +52,7 @@ export class ClaimsService {
         action: 'CLAIM_CREATED',
         entityType: 'CLAIM',
         entityId: claim.id,
+        claimId: claim.id,
         correlationId: context.correlationId,
         newValues: {
           claimNumber,

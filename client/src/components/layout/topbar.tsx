@@ -94,6 +94,7 @@ export function Topbar() {
               type="button"
               className={styles.avatarButton}
               aria-haspopup="menu"
+              aria-label="Open account menu"
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((current) => !current)}
             >

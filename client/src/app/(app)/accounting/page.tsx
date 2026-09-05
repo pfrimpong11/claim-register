@@ -80,7 +80,11 @@ export default function AccountingPage() {
         subtitle="Read-only general ledger postings from payable approvals, payments, and reversals."
       />
       {error ? <p role="alert">{error}</p> : null}
-      <Card flush>
+      <Card
+        title="General ledger"
+        subtitle="Automatic postings linked to claims and payments"
+        flush
+      >
         <DataTable
           columns={COLUMNS}
           rows={journals ?? []}

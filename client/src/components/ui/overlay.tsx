@@ -9,6 +9,7 @@ import styles from './overlay.module.css';
 
 let bodyScrollLockCount = 0;
 let bodyOverflowBeforeLock = '';
+const overlayStack: HTMLElement[] = [];
 
 function lockBodyScroll() {
   if (bodyScrollLockCount === 0) {
@@ -37,22 +38,41 @@ function useOverlayBehavior(open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
-    panel?.focus();
+    if (!panel) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    overlayStack.push(panel);
+    panel.focus();
 
     function onKeyDown(event: KeyboardEvent) {
+      if (overlayStack.at(-1) !== panel) return;
       if (event.key === 'Escape') {
         event.stopPropagation();
         onCloseRef.current();
         return;
       }
       if (event.key === 'Tab' && panel) {
-        const focusable = panel.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        const focusable = Array.from(
+          panel.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter(
+          (element) =>
+            !element.matches(':disabled, [tabindex="-1"]') &&
+            !element.closest('[hidden]') &&
+            getComputedStyle(element).display !== 'none' &&
+            getComputedStyle(element).visibility !== 'hidden',
         );
-        if (focusable.length === 0) return;
+        if (focusable.length === 0) {
+          event.preventDefault();
+          panel.focus();
+          return;
+        }
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
+        if (document.activeElement === panel || !panel.contains(document.activeElement)) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        } else if (event.shiftKey && document.activeElement === first) {
           event.preventDefault();
           last.focus();
         } else if (!event.shiftKey && document.activeElement === last) {
@@ -66,7 +86,11 @@ function useOverlayBehavior(open: boolean, onClose: () => void) {
     const unlockBodyScroll = lockBodyScroll();
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      const wasTop = overlayStack.at(-1) === panel;
+      const index = overlayStack.indexOf(panel);
+      if (index >= 0) overlayStack.splice(index, 1);
       unlockBodyScroll();
+      if (wasTop && previousFocus?.isConnected) previousFocus.focus();
     };
   }, [open]);
 

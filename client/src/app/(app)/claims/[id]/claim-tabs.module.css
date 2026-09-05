@@ -154,3 +154,77 @@
     grid-template-columns: 1fr;
   }
 }
+
+.overviewGrid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.claimInformation {
+  grid-row: 1 / span 2;
+}
+.financialCard {
+  grid-column: 2;
+}
+.historyCard {
+  grid-column: 2;
+}
+.claimInformation .infoList {
+  gap: 0;
+}
+.claimInformation .item {
+  grid-template-columns: 1fr;
+  gap: 7px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.claimInformation .item:first-child {
+  padding-top: 0;
+}
+.claimInformation .item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.claimInformation .item dt {
+  font-size: 10px;
+}
+.claimInformation .item dd {
+  font-size: 13px;
+}
+.financialCard .infoList {
+  gap: 16px;
+}
+.financialCard .item {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+.financialCard .item dt {
+  font-size: 10px;
+}
+.financialCard .item dd {
+  font-size: 14px;
+  font-weight: 600;
+}
+.stack {
+  gap: 24px;
+}
+.actionsCell,
+.formActions {
+  flex-wrap: wrap;
+}
+@media (max-width: 1200px) {
+  .overviewGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .claimInformation,
+  .financialCard,
+  .historyCard {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+@media (max-width: 760px) {
+  .item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}

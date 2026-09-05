@@ -44,6 +44,7 @@ export class PayablesService {
         action: 'PAYABLE_CREATED',
         entityType: 'CLAIM_PAYABLE',
         entityId: payable.id,
+        claimId,
         correlationId: context.correlationId,
         newValues: {
           claimId,
@@ -135,6 +136,7 @@ export class PayablesService {
         action: 'PAYABLE_APPROVED',
         entityType: 'CLAIM_PAYABLE',
         entityId: id,
+        claimId: payable.claimId,
         correlationId: context.correlationId,
         oldValues: { status: 'DRAFT' },
         newValues: { status: 'APPROVED', journalNumber },
@@ -169,6 +171,7 @@ export class PayablesService {
         action: 'PAYABLE_CANCELLED',
         entityType: 'CLAIM_PAYABLE',
         entityId: id,
+        claimId: payable.claimId,
         correlationId: context.correlationId,
         oldValues: { status: 'DRAFT' },
         newValues: { status: 'CANCELLED', reason: input.reason },

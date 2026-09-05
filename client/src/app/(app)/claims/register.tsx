@@ -11,12 +11,14 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DataTable, type Column } from '@/components/ui/data-table';
-import { FilterBar, FilterItem, FilterSpacer } from '@/components/ui/filter-bar';
+import { FilterBar, FilterItem } from '@/components/ui/filter-bar';
 import { DateInput, Input, Select } from '@/components/ui/form';
 import { Pagination } from '@/components/ui/pagination';
 import { Money } from '@/components/ui/stats';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useToast } from '@/components/ui/toast';
+
+import styles from './register.module.css';
 
 const FALLBACK_CURRENCIES = ['GHS', 'USD', 'EUR', 'GBP'];
 
@@ -29,84 +31,89 @@ const STATUS_OPTIONS = [
 const COLUMNS: Column<Claim>[] = [
   {
     key: 'claimNumber',
-    header: 'Claim No.',
+    header: 'Claim / insured',
     nowrap: true,
     render: (claim) => (
-      <Link href={`/claims/${claim.id}`} className="text-link">
-        {claim.claimNumber}
-      </Link>
+      <div className={styles.identity}>
+        <Link href={`/claims/${claim.id}`} className="text-link">
+          {claim.claimNumber}
+        </Link>
+        <span>{claim.insuredNameSnapshot ?? '—'}</span>
+      </div>
     ),
   },
   {
-    key: 'policyNumber',
-    header: 'Policy No.',
-    nowrap: true,
-    render: (claim) => claim.policyNumberSnapshot ?? '—',
-  },
-  {
-    key: 'insured',
-    header: 'Insured',
-    render: (claim) => claim.insuredNameSnapshot ?? '—',
-  },
-  {
-    key: 'lossDate',
-    header: 'Loss Date',
-    nowrap: true,
-    render: (claim) => formatDate(claim.lossDate),
-  },
-  {
-    key: 'notificationDate',
-    header: 'Notified Date',
-    nowrap: true,
-    render: (claim) => formatDate(claim.notificationDate),
-  },
-  { key: 'lossNature', header: 'Loss Nature' },
-  { key: 'currencyCode', header: 'Currency', nowrap: true },
-  {
-    key: 'estimatedLoss',
-    header: 'Est. Loss',
-    align: 'right',
-    render: (claim) => <Money amount={claim.estimatedLossAmount} currency={claim.currencyCode} />,
-  },
-  {
-    key: 'approved',
-    header: 'Approved',
-    align: 'right',
-    render: (claim) => <Money amount={claim.approvedAmount} currency={claim.currencyCode} />,
-  },
-  {
-    key: 'paid',
-    header: 'Paid',
-    align: 'right',
-    render: (claim) => <Money amount={claim.paidAmount} currency={claim.currencyCode} />,
-  },
-  {
-    key: 'outstanding',
-    header: 'Outstanding',
-    align: 'right',
+    key: 'policy',
+    header: 'Policy',
     render: (claim) => (
-      <Money
-        amount={claim.outstandingAmount}
-        currency={claim.currencyCode}
-        tone={Number(claim.outstandingAmount) > 0 ? 'danger' : undefined}
-      />
+      <div className={styles.identity}>
+        <span>{claim.policyNumberSnapshot ?? '—'}</span>
+        {claim.policyNameSnapshot ? <small>{claim.policyNameSnapshot}</small> : null}
+      </div>
     ),
   },
   {
-    key: 'overpaid',
-    header: 'Overpaid',
+    key: 'loss',
+    header: 'Loss details',
+    render: (claim) => (
+      <div className={styles.identity}>
+        <span>{claim.lossNature}</span>
+        <small>Loss: {formatDate(claim.lossDate)}</small>
+        <small>Notified: {formatDate(claim.notificationDate)}</small>
+      </div>
+    ),
+  },
+  {
+    key: 'indemnity',
+    header: 'Indemnity',
     align: 'right',
     render: (claim) => (
-      <Money
-        amount={claim.overpaidAmount || '0'}
-        currency={claim.currencyCode}
-        tone={Number(claim.overpaidAmount || 0) > 0 ? 'danger' : undefined}
-      />
+      <dl className={styles.figures}>
+        <div>
+          <dt>Estimated</dt>
+          <dd>
+            <Money amount={claim.estimatedLossAmount} currency={claim.currencyCode} />
+          </dd>
+        </div>
+        <div>
+          <dt>Approved</dt>
+          <dd>
+            <Money amount={claim.approvedAmount} currency={claim.currencyCode} />
+          </dd>
+        </div>
+      </dl>
+    ),
+  },
+  {
+    key: 'payments',
+    header: 'Payments',
+    align: 'right',
+    render: (claim) => (
+      <dl className={styles.figures}>
+        <div>
+          <dt>Paid</dt>
+          <dd className={styles.paid}>
+            <Money amount={claim.paidAmount} currency={claim.currencyCode} />
+          </dd>
+        </div>
+        <div>
+          <dt>Outstanding</dt>
+          <dd>
+            <Money amount={claim.outstandingAmount} currency={claim.currencyCode} />
+          </dd>
+        </div>
+        <div>
+          <dt>Overpaid</dt>
+          <dd>
+            <Money amount={claim.overpaidAmount || '0'} currency={claim.currencyCode} />
+          </dd>
+        </div>
+      </dl>
     ),
   },
   {
     key: 'status',
-    header: 'Status',
+    header: 'Financial status',
     render: (claim) => <StatusBadge kind="claim" status={claim.financialStatus} />,
   },
 ];
@@ -140,6 +147,7 @@ export function ClaimsRegister() {
   const router = useRouter();
   const toast = useToast();
   const canExport = usePermission('reports.export');
+  const canCreate = usePermission('claims.create');
   const searchParams = useSearchParams();
   const query = searchParams.toString();
   const [result, setResult] = useState<ClaimListResponse>();
@@ -237,17 +245,29 @@ export function ClaimsRegister() {
                 {exporting ? 'Preparing export…' : 'Export'}
               </Button>
             ) : null}
-            <ButtonLink href="/claims/new" icon="plus">
-              Create Claim
-            </ButtonLink>
+            {canCreate ? (
+              <ButtonLink href="/claims/new" icon="plus">
+                Create Claim
+              </ButtonLink>
+            ) : null}
           </>
         }
       />
-      <Card>
-        <form onSubmit={applyFilters} style={{ display: 'grid', gap: 'var(--space-3)' }}>
-          <FilterBar>
-            <FilterItem grow>
+
+      <Card
+        className={styles.registerCard}
+        title="Claims register"
+        subtitle={
+          result
+            ? `${result.meta.total} claims match your filters`
+            : 'Find and review your registered claims'
+        }
+      >
+        <form key={query} onSubmit={applyFilters} className={styles.filterForm}>
+          <FilterBar className={styles.filterGrid}>
+            <FilterItem label="Search register" htmlFor="filter-search" grow>
               <Input
+                id="filter-search"
                 name="search"
                 type="search"
                 defaultValue={searchParams.get('search') ?? ''}
@@ -287,21 +307,25 @@ export function ClaimsRegister() {
                 defaultValue={searchParams.get('lossTo') ?? ''}
               />
             </FilterItem>
-            <Button
-              variant="ghost"
-              icon="filter"
-              onClick={() => setMoreFilters((current) => !current)}
-              aria-expanded={moreFilters}
-            >
-              Filters
-            </Button>
-            <FilterSpacer />
-            <Button type="submit" variant="secondary">
-              Apply
-            </Button>
+            <div className={styles.filterActions}>
+              <Button
+                variant="ghost"
+                icon="filter"
+                onClick={() => setMoreFilters((current) => !current)}
+                aria-expanded={moreFilters}
+              >
+                Filters
+              </Button>
+              <ButtonLink href="/claims" variant="ghost">
+                Clear all
+              </ButtonLink>
+              <Button type="submit" variant="secondary">
+                Apply
+              </Button>
+            </div>
           </FilterBar>
-          {moreFilters ? (
-            <FilterBar>
+          <div hidden={!moreFilters}>
+            <FilterBar className={styles.filterGrid}>
               <FilterItem label="Loss nature" htmlFor="filter-loss-nature" grow>
                 <Input
                   id="filter-loss-nature"
@@ -338,38 +362,40 @@ export function ClaimsRegister() {
                 />
               </FilterItem>
             </FilterBar>
-          ) : null}
+          </div>
         </form>
+        {error ? <p role="alert">{error}</p> : null}
+        <div className={styles.tableArea}>
+          <DataTable
+            columns={COLUMNS}
+            rows={result?.data ?? []}
+            rowKey={(claim) => claim.id}
+            loading={!result && !error}
+            emptyMessage="No claims match the current search."
+            footer={
+              result && result.meta.total > 0 ? (
+                <Pagination
+                  page={result.meta.page}
+                  totalPages={result.meta.totalPages ?? 1}
+                  total={result.meta.total}
+                  pageSize={result.meta.pageSize}
+                  onPageChange={(page) => router.push(pageHref(page))}
+                />
+              ) : undefined
+            }
+          />
+        </div>
       </Card>
-      {error ? <p role="alert">{error}</p> : null}
-      <Card flush>
-        <DataTable
-          columns={COLUMNS}
-          rows={result?.data ?? []}
-          rowKey={(claim) => claim.id}
-          loading={!result && !error}
-          emptyMessage="No claims match the current search."
-          footer={
-            result && result.meta.total > 0 ? (
-              <Pagination
-                page={result.meta.page}
-                totalPages={result.meta.totalPages ?? 1}
-                total={result.meta.total}
-                pageSize={result.meta.pageSize}
-                onPageChange={(page) => router.push(pageHref(page))}
-              />
-            ) : undefined
-          }
-        />
-      </Card>
+
       <Card
-        title="Totals by Currency (Indemnity Only)"
-        subtitle="Totals reflect the current filters."
+        title="Totals by currency"
+        subtitle="All claims matching the current filters · indemnity only"
         flush
       >
         <DataTable
+          caption="Claims totals by currency"
           columns={[
-            { key: 'currencyCode', header: 'Currency', nowrap: true },
+            { key: 'currencyCode', header: 'Currency' },
             {
               key: 'estimatedLoss',
               header: 'Estimated Loss',
@@ -379,7 +405,7 @@ export function ClaimsRegister() {
               ),
             },
             {
-              key: 'approved',
+              key: 'approvedAmount',
               header: 'Approved (Indemnity)',
               align: 'right',
               render: (summary) => (
@@ -387,7 +413,7 @@ export function ClaimsRegister() {
               ),
             },
             {
-              key: 'paid',
+              key: 'paidAmount',
               header: 'Total Paid',
               align: 'right',
               render: (summary) => (
@@ -395,34 +421,26 @@ export function ClaimsRegister() {
               ),
             },
             {
-              key: 'outstanding',
+              key: 'outstandingAmount',
               header: 'Outstanding',
               align: 'right',
               render: (summary) => (
-                <Money
-                  amount={summary.outstandingAmount}
-                  currency={summary.currencyCode}
-                  tone={Number(summary.outstandingAmount) > 0 ? 'danger' : undefined}
-                />
+                <Money amount={summary.outstandingAmount} currency={summary.currencyCode} />
               ),
             },
             {
-              key: 'overpaid',
+              key: 'overpaidAmount',
               header: 'Overpaid',
               align: 'right',
               render: (summary) => (
-                <Money
-                  amount={summary.overpaidAmount || '0'}
-                  currency={summary.currencyCode}
-                  tone={Number(summary.overpaidAmount || 0) > 0 ? 'danger' : undefined}
-                />
+                <Money amount={summary.overpaidAmount || '0'} currency={summary.currencyCode} />
               ),
             },
           ]}
-          rows={result?.summaries ?? []}
+          rows={error ? [] : (result?.summaries ?? [])}
           rowKey={(summary) => summary.currencyCode}
           loading={!result && !error}
-          emptyMessage="No totals for the current filters."
+          emptyMessage={error ? 'Totals are unavailable.' : 'No totals for the current filters.'}
         />
       </Card>
     </>

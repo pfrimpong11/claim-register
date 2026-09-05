@@ -45,3 +45,21 @@
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: var(--space-4);
 }
+
+.stat {
+  padding: 22px;
+}
+.statLabel {
+  font-size: 11px;
+}
+.statValue {
+  font-size: 26px;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+.statHint {
+  font-size: 11px;
+}
+.row {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}

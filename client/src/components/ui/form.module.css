@@ -1,6 +1,6 @@
 .field {
   display: grid;
-  gap: var(--space-1);
+  gap: 7px;
   align-content: start;
 }
 
@@ -22,8 +22,8 @@
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
-  font-size: var(--text-md);
-  min-height: 36px;
+  font-size: 13px;
+  min-height: 42px;
 }
 
 .control:focus {
@@ -64,6 +64,27 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: var(--space-4);
+  gap: 20px;
   align-items: start;
+}
+
+.field {
+  min-width: 0;
+}
+.control {
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.control:hover:not(:disabled):not(:focus) {
+  border-color: #9aafb9;
+}
+.hint,
+.error {
+  font-size: 11px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
 }

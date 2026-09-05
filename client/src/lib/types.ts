@@ -257,6 +257,7 @@ export type AuditEntry = {
   action: string;
   entityType: string;
   entityId?: string;
+  claimId?: string;
   oldValues?: unknown;
   newValues?: unknown;
   occurredAt: string;

@@ -360,7 +360,32 @@ async function seed() {
       financeOfficer,
       financeManager,
     });
+    await syncNumberSequences(transaction);
   });
+}
+
+/**
+ * @param {import('@prisma/client').Prisma.TransactionClient} transaction
+ */
+async function syncNumberSequences(transaction) {
+  await transaction.$executeRaw`
+    INSERT INTO claim_number_sequences (year, next_value)
+    SELECT split_part(claim_number, '-', 2)::int, max(split_part(claim_number, '-', 3)::int) + 1
+    FROM claims WHERE claim_number ~ '^CLM-[0-9]{4}-[0-9]+$' GROUP BY 1
+    ON CONFLICT (year) DO UPDATE
+    SET next_value = GREATEST(claim_number_sequences.next_value, EXCLUDED.next_value)`;
+  await transaction.$executeRaw`
+    INSERT INTO payment_number_sequences (year, next_value)
+    SELECT split_part(payment_number, '-', 2)::int, max(split_part(payment_number, '-', 3)::int) + 1
+    FROM claim_payments WHERE payment_number ~ '^PAY-[0-9]{4}-[0-9]+$' GROUP BY 1
+    ON CONFLICT (year) DO UPDATE
+    SET next_value = GREATEST(payment_number_sequences.next_value, EXCLUDED.next_value)`;
+  await transaction.$executeRaw`
+    INSERT INTO journal_number_sequences (year, next_value)
+    SELECT split_part(journal_number, '-', 2)::int, max(split_part(journal_number, '-', 3)::int) + 1
+    FROM journal_entries WHERE journal_number ~ '^JRN-[0-9]{4}-[0-9]+$' GROUP BY 1
+    ON CONFLICT (year) DO UPDATE
+    SET next_value = GREATEST(journal_number_sequences.next_value, EXCLUDED.next_value)`;
 }
 
 const sampleClaimRows = [
@@ -543,7 +568,19 @@ async function seedSamplePayments(transaction, actors, claims, payables) {
         reversedAt: status === 'REVERSED' ? new Date('2026-08-27T10:00:00Z') : null,
         reversalReason: status === 'REVERSED' ? 'Sample reversal after payment correction' : null,
       },
-      update: { status, paymentAmount, fxRate, settlementAmount },
+      update: {
+        status,
+        paymentAmount,
+        fxRate,
+        settlementAmount,
+        approvedBy: approved ? actors.financeManager.id : null,
+        approvedAt: approved ? new Date('2026-08-25T12:00:00Z') : null,
+        succeededBy: completed ? actors.financeOfficer.id : null,
+        succeededAt: completed ? new Date('2026-08-26T12:00:00Z') : null,
+        reversedBy: status === 'REVERSED' ? actors.financeManager.id : null,
+        reversedAt: status === 'REVERSED' ? new Date('2026-08-27T10:00:00Z') : null,
+        reversalReason: status === 'REVERSED' ? 'Sample reversal after payment correction' : null,
+      },
     });
     if (status === 'SUCCESSFUL' && settlementAmount === payable.amount.toFixed(2)) {
       await transaction.claimStatusHistory.upsert({
@@ -797,10 +834,11 @@ async function seedSampleAudit(transaction, actors, claims) {
         action: 'CLAIM_CREATED',
         entityType: 'CLAIM',
         entityId: claim.id,
+        claimId: claim.id,
         newValues: { claimNumber: claim.claimNumber, currencyCode: claim.currencyCode },
         correlationId: `seed-claim-${index + 1}`,
       },
-      update: {},
+      update: { claimId: claim.id },
     });
 }
 

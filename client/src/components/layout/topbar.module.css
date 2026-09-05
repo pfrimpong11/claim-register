@@ -154,3 +154,50 @@
 .menuItem:hover {
   background: var(--color-surface-muted);
 }
+
+.topbar {
+  padding-inline: 32px;
+}
+.searchInput {
+  min-height: 38px;
+  width: clamp(140px, 22vw, 300px);
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  padding-left: 32px;
+}
+.searchIcon {
+  left: 10px;
+}
+.avatar {
+  width: 36px;
+  height: 36px;
+  background: #e6f2f3;
+  color: #066773;
+}
+@media (max-width: 760px) {
+  .topbar {
+    padding: 12px 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .actions {
+    gap: 8px;
+  }
+  .breadcrumbs {
+    font-size: 12px;
+  }
+  .searchInput {
+    width: 140px;
+  }
+}
+
+.topbar {
+  background: transparent;
+  border-bottom: 0;
+  position: relative;
+  min-height: 80px;
+}
+.searchInput {
+  background: white;
+  border-radius: 10px;
+}

@@ -25,6 +25,7 @@ export class AuditService {
    * @param {string} event.action
    * @param {string} event.entityType
    * @param {string | null} [event.entityId]
+   * @param {string | null} [event.claimId]
    * @param {unknown} [event.oldValues]
    * @param {unknown} [event.newValues]
    * @param {string} event.correlationId
@@ -40,6 +41,7 @@ export class AuditService {
         action: event.action,
         entityType: event.entityType,
         entityId: event.entityId ?? null,
+        claimId: event.claimId ?? null,
         oldValues:
           oldValues === undefined
             ? undefined

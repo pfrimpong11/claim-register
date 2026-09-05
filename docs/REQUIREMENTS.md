@@ -137,7 +137,7 @@ Permissions are enforced by the API. Seeded roles are defaults, not hard-coded a
 - FR-060: The register displays claim number, policy number/name, insured, loss date, notified date, loss nature, currency, estimated loss, approved amount, paid amount, outstanding amount, and derived financial status.
 - FR-061: Users can filter by claim number/search text, policy, insured, loss nature, currency, status, loss-date range, and notified-date range.
 - FR-062: Filtering, sorting, and pagination are server-side and represented in the URL.
-- FR-063: Summary cards/totals respect the active filters and are grouped by currency.
+- FR-063: The claims list has a separate totals table beneath it, grouped by currency and respecting the active filters across all matching pages. Its columns are Currency, Estimated Loss, Approved (Indemnity), Total Paid, Outstanding, and Overpaid.
 - FR-064: Authorized users can export the filtered register to CSV with the same definitions used on screen.
 
 ### Settlement accounts and reconciliation

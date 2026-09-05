@@ -31,7 +31,11 @@ export function DataTable<T>({
   caption?: string;
 }) {
   return (
-    <div className={styles.wrap}>
+    <div
+      className={styles.wrap}
+      tabIndex={0}
+      aria-label={caption ? `${caption} scroll area` : 'Table scroll area'}
+    >
       <table className={styles.table}>
         {caption ? <caption className={styles.caption}>{caption}</caption> : null}
         <thead>
@@ -40,7 +44,10 @@ export function DataTable<T>({
               <th
                 key={column.key}
                 style={column.width ? { width: column.width } : undefined}
-                className={cx(column.align === 'right' && styles.right)}
+                className={cx(
+                  column.align === 'right' && styles.right,
+                  column.align === 'center' && styles.center,
+                )}
               >
                 {column.header}
               </th>
@@ -66,6 +73,7 @@ export function DataTable<T>({
                       className={cx(
                         column.align === 'right' && styles.right,
                         column.nowrap && styles.nowrap,
+                        column.align === 'center' && styles.center,
                       )}
                     >
                       {column.render

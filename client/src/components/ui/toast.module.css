@@ -47,3 +47,17 @@
 .close:hover {
   opacity: 1;
 }
+
+.toast {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--color-sidebar-bg);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.close {
+  padding: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  flex-shrink: 0;
+}

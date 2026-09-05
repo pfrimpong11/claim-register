@@ -100,6 +100,7 @@ export class PaymentsService {
         action: 'PAYMENT_CREATED',
         entityType: 'CLAIM_PAYMENT',
         entityId: payment.id,
+        claimId: payable.claimId,
         correlationId: context.correlationId,
         newValues: {
           ...publicPayment(payment),
@@ -137,6 +138,7 @@ export class PaymentsService {
         action: 'PAYMENT_APPROVED',
         entityType: 'CLAIM_PAYMENT',
         entityId: id,
+        claimId: payment.claimId,
         correlationId: context.correlationId,
         oldValues: { status: 'DRAFT' },
         newValues: { status: 'APPROVED' },
@@ -251,6 +253,7 @@ export class PaymentsService {
           action: 'PAYMENT_SUCCEEDED',
           entityType: 'CLAIM_PAYMENT',
           entityId: id,
+          claimId: payment.claimId,
           correlationId: context.correlationId,
           oldValues: { status: payment.status },
           newValues: {
@@ -331,6 +334,7 @@ export class PaymentsService {
           action: 'PAYMENT_REVERSED',
           entityType: 'CLAIM_PAYMENT',
           entityId: id,
+          claimId: payment.claimId,
           correlationId: context.correlationId,
           oldValues: { status: 'SUCCESSFUL' },
           newValues: {

@@ -8,7 +8,11 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/feedback';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { TabPanel, Tabs } from '@/components/ui/tabs';
+import Link from 'next/link';
+import { Money } from '@/components/ui/stats';
+import { Icon } from '@/components/ui/icon';
+import { usePermission } from '@/lib/auth';
+import styles from './claim-detail.module.css';
 import { ActivityTab } from './activity-tab';
 import { DocumentsTab } from './documents-tab';
 import { OverviewTab } from './overview-tab';
@@ -29,6 +33,7 @@ const TABS = [
 
 export function ClaimDetail({ id }: { id: string }) {
   const searchParams = useSearchParams();
+  const canCreatePayment = usePermission('payments.create');
   const [activeTab, setActiveTab] = useState(() => {
     const requested = searchParams.get('tab') ?? 'overview';
     return TABS.some((tab) => tab.id === requested) ? requested : 'overview';
@@ -39,7 +44,10 @@ export function ClaimDetail({ id }: { id: string }) {
   const load = useCallback(
     () =>
       apiRequest<{ data: Claim }>(`/claims/${id}`)
-        .then((response) => setClaim(response.data))
+        .then((response) => {
+          setClaim(response.data);
+          setError('');
+        })
         .catch((e: unknown) =>
           setError(e instanceof Error ? e.message : 'The claim could not load.'),
         ),
@@ -70,54 +78,106 @@ export function ClaimDetail({ id }: { id: string }) {
 
   return (
     <>
-      <PageHeader
-        title={claim.claimNumber}
-        badge={<StatusBadge kind="claim" status={claim.financialStatus} />}
-        subtitle={`${claim.policyNumberSnapshot} · ${claim.insuredNameSnapshot}`}
-        actions={
-          activeTab !== 'payments' ? (
-            <Button icon="plus" onClick={() => selectTab('payments')}>
-              New Payment
-            </Button>
-          ) : undefined
-        }
-      />
-      <Tabs tabs={TABS} activeId={activeTab} onChange={selectTab} />
-      {activeTab === 'overview' ? (
-        <TabPanel tabId="overview">
-          <OverviewTab claim={claim} />
-        </TabPanel>
-      ) : null}
-      {activeTab === 'reserves' ? (
-        <TabPanel tabId="reserves">
-          <ReservesTab claim={claim} />
-        </TabPanel>
-      ) : null}
-      {activeTab === 'payables' ? (
-        <TabPanel tabId="payables">
-          <PayablesTab claimId={id} currencyCode={claim.currencyCode} onChanged={load} />
-        </TabPanel>
-      ) : null}
-      {activeTab === 'payments' ? (
-        <TabPanel tabId="payments">
-          <PaymentsTab claim={claim} onChanged={load} />
-        </TabPanel>
-      ) : null}
-      {activeTab === 'reconciliation' ? (
-        <TabPanel tabId="reconciliation">
-          <ReconciliationTab claimId={id} />
-        </TabPanel>
-      ) : null}
-      {activeTab === 'documents' ? (
-        <TabPanel tabId="documents">
-          <DocumentsTab claimId={id} />
-        </TabPanel>
-      ) : null}
-      {activeTab === 'activity' ? (
-        <TabPanel tabId="activity">
-          <ActivityTab claim={claim} />
-        </TabPanel>
-      ) : null}
+      <Link href="/claims" className={styles.backLink}>
+        <Icon name="chevron-left" size={14} />
+        Back to claims
+      </Link>
+      <div className={styles.claimHeader}>
+        <div className={styles.claimMark}>
+          <Icon name="claims" size={26} />
+        </div>
+        <PageHeader
+          title={claim.claimNumber}
+          badge={<StatusBadge kind="claim" status={claim.financialStatus} />}
+          subtitle={`${claim.policyNumberSnapshot} · ${claim.insuredNameSnapshot}`}
+          actions={
+            canCreatePayment && activeTab !== 'payments' ? (
+              <Button icon="plus" onClick={() => selectTab('payments')}>
+                View payment actions
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
+      <section className={styles.financialStrip} aria-label="Claim financial snapshot">
+        {[
+          { label: 'Estimated loss', amount: claim.estimatedLossAmount },
+          { label: 'Approved indemnity', amount: claim.approvedAmount },
+          { label: 'Total paid', amount: claim.paidAmount },
+          { label: 'Outstanding', amount: claim.outstandingAmount },
+          { label: 'Overpaid', amount: claim.overpaidAmount || '0' },
+        ].map((item) => (
+          <div key={item.label}>
+            <span>{item.label}</span>
+            <strong>
+              <Money amount={item.amount} currency={claim.currencyCode} />
+            </strong>
+          </div>
+        ))}
+      </section>
+      <div className={styles.workspace}>
+        <nav className={styles.sectionNav} aria-label="Claim sections">
+          <p>Claim workspace</p>
+          {TABS.map((tab, index) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={activeTab === tab.id ? styles.selected : undefined}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+              aria-controls="claim-section-content"
+              aria-label={tab.label}
+              onClick={() => selectTab(tab.id)}
+            >
+              <span className={styles.sectionNumber}>{String(index + 1).padStart(2, '0')}</span>
+              {tab.label}
+              <Icon name="chevron-right" size={12} />
+            </button>
+          ))}
+          <div className={styles.sectionNote}>
+            <Icon name="shield" size={18} />
+            <span>
+              Claim currency<strong>{claim.currencyCode}</strong>
+            </span>
+          </div>
+        </nav>
+        <div id="claim-section-content" className={styles.sectionContent}>
+          {activeTab === 'overview' ? (
+            <section aria-label="Overview">
+              <OverviewTab claim={claim} />
+            </section>
+          ) : null}
+          {activeTab === 'reserves' ? (
+            <section aria-label="Reserves">
+              <ReservesTab claim={claim} />
+            </section>
+          ) : null}
+          {activeTab === 'payables' ? (
+            <section aria-label="Payables">
+              <PayablesTab claimId={id} currencyCode={claim.currencyCode} onChanged={load} />
+            </section>
+          ) : null}
+          {activeTab === 'payments' ? (
+            <section aria-label="Payments">
+              <PaymentsTab claim={claim} onChanged={load} />
+            </section>
+          ) : null}
+          {activeTab === 'reconciliation' ? (
+            <section aria-label="Reconciliation">
+              <ReconciliationTab claimId={id} />
+            </section>
+          ) : null}
+          {activeTab === 'documents' ? (
+            <section aria-label="Documents">
+              <DocumentsTab claimId={id} />
+            </section>
+          ) : null}
+          {activeTab === 'activity' ? (
+            <section aria-label="Activity">
+              <ActivityTab claim={claim} />
+            </section>
+          ) : null}
+        </div>
+      </div>
     </>
   );
 }

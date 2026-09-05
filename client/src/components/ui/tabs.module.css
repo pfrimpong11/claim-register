@@ -32,3 +32,8 @@
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
+
+[role='tab'].tab {
+  font-size: 12px;
+  min-height: 42px;
+}

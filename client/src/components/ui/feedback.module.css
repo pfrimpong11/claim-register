@@ -105,3 +105,30 @@
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
+
+.empty {
+  padding: 44px 24px;
+  gap: 12px;
+}
+.emptyIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.emptyTitle {
+  font-size: 14px;
+  color: var(--color-text);
+}
+.emptyMessage {
+  font-size: 12px;
+  line-height: 1.75;
+}
+.timelineTitle {
+  font-size: 12px;
+}
+.timelineMeta {
+  font-size: 11px;
+  margin-top: 4px;
+}

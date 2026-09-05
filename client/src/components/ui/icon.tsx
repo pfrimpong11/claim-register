@@ -69,14 +69,6 @@ const ICONS = {
       <path d="M12 7v5l3 3" />
     </>
   ),
-  settings: (
-    <>
-      <path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h10M18 18h2" />
-      <circle cx="16" cy="6" r="2" />
-      <circle cx="8" cy="12" r="2" />
-      <circle cx="16" cy="18" r="2" />
-    </>
-  ),
   logout: (
     <>
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

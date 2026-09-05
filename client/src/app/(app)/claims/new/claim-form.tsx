@@ -146,7 +146,8 @@ export function ClaimForm() {
       <form onSubmit={submit} className={styles.stack}>
         <Card
           allowOverflow
-          title="Policy & Insured"
+          title="01 · Policy & Insured"
+          subtitle="Select the policy that covers this claim."
           actions={
             <Button
               variant="secondary"
@@ -203,7 +204,10 @@ export function ClaimForm() {
             ) : null}
           </div>
         </Card>
-        <Card title="Loss Details">
+        <Card
+          title="02 · Loss Details"
+          subtitle="Record the loss and its initial estimated amount."
+        >
           <div className={styles.stackSmall}>
             <FormGrid>
               <Field label="Loss Date" htmlFor="loss-date" required>

@@ -10,12 +10,14 @@ describe('AuditService', () => {
       {
         action: 'TEST',
         entityType: 'TEST',
+        claimId: '11111111-1111-4111-8111-111111111111',
         correlationId: 'request-1',
         newValues: { email: 'safe@example.test', password: 'secret', nested: { token: 'x' } },
       },
     );
     expect(create).toHaveBeenCalledWith({
       data: expect.objectContaining({
+        claimId: '11111111-1111-4111-8111-111111111111',
         newValues: {
           email: 'safe@example.test',
           password: '[REDACTED]',

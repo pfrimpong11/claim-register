@@ -286,6 +286,7 @@ model Claim {
   journalEntries             JournalEntry[]
   journalLines               JournalLine[]
   payments                   ClaimPayment[]
+  auditLogs                  AuditLog[]
 
   @@index([lossDate])
   @@index([notificationDate])
@@ -718,6 +719,7 @@ model AuditLog {
   action        String   @db.VarChar(150)
   entityType    String   @map("entity_type") @db.VarChar(100)
   entityId      String?  @map("entity_id") @db.Uuid
+  claimId       String?  @map("claim_id") @db.Uuid
   oldValues     Json?    @map("old_values")
   newValues     Json?    @map("new_values")
   correlationId String   @map("correlation_id") @db.VarChar(100)
@@ -725,8 +727,10 @@ model AuditLog {
   userAgent     String?  @map("user_agent") @db.VarChar(500)
   occurredAt    DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
   actor         User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  claim         Claim?   @relation(fields: [claimId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId, occurredAt])
+  @@index([claimId, occurredAt])
   @@index([actorUserId, occurredAt])
   @@index([occurredAt])
   @@map("audit_logs")

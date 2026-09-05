@@ -82,6 +82,7 @@ export class DocumentsService {
           action: 'CLAIM_DOCUMENT_UPLOADED',
           entityType: 'CLAIM_DOCUMENT',
           entityId: created.id,
+          claimId,
           correlationId: context.correlationId,
           newValues: {
             claimId,
@@ -127,6 +128,7 @@ export class DocumentsService {
         action: 'CLAIM_DOCUMENT_DEACTIVATED',
         entityType: 'CLAIM_DOCUMENT',
         entityId: id,
+        claimId: document.claimId,
         correlationId: context.correlationId,
         oldValues: { status: 'ACTIVE' },
         newValues: { status: 'INACTIVE' },

@@ -20,7 +20,11 @@ function Item({ label, value }: { label: string; value: React.ReactNode }) {
 export function OverviewTab({ claim }: { claim: Claim }) {
   return (
     <div className={styles.overviewGrid}>
-      <Card title="Claim Information">
+      <Card
+        title="Claim Information"
+        subtitle="Policy, insured and reported loss"
+        className={styles.claimInformation}
+      >
         <dl className={styles.infoList}>
           <Item label="Policy Number" value={claim.policyNumberSnapshot} />
           <Item label="Policy Name" value={claim.policyNameSnapshot || '—'} />
@@ -32,7 +36,11 @@ export function OverviewTab({ claim }: { claim: Claim }) {
           <Item label="Currency" value={claim.currencyCode} />
         </dl>
       </Card>
-      <Card title="Financial Summary (Indemnity)">
+      <Card
+        title="Financial Summary (Indemnity)"
+        subtitle="Amounts in the claim currency"
+        className={styles.financialCard}
+      >
         <dl className={`${styles.infoList} ${styles.financialList}`}>
           <Item
             label="Estimated Loss"
@@ -74,7 +82,7 @@ export function OverviewTab({ claim }: { claim: Claim }) {
           />
         </dl>
       </Card>
-      <Card title="Status History">
+      <Card title="Status History" className={styles.historyCard}>
         {claim.statusHistory?.length ? (
           <Timeline
             items={claim.statusHistory.map((event) => ({

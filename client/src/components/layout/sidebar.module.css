@@ -1,147 +1,227 @@
 .sidebar {
-  display: flex;
-  flex-direction: column;
+  position: sticky;
+  top: 16px;
+  height: calc(100dvh - 32px);
+  margin: 16px 0 16px 16px;
+  padding: 24px 14px 12px;
+  border-radius: 20px;
   background: var(--color-sidebar-bg);
   color: var(--color-sidebar-text);
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
 }
-
 .brand {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  min-height: var(--topbar-height);
+  gap: 12px;
+  padding: 4px 10px 28px;
 }
-
 .logo {
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  color: #8ce1e0;
+  border: 1px solid #355067;
+  border-radius: 13px;
   flex-shrink: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-sidebar-active);
-  color: var(--color-text-invert);
 }
-
-.brandName {
-  font-weight: 700;
-  font-size: var(--text-lg);
-  color: var(--color-text-invert);
+.brandMeta {
+  display: grid;
+  gap: 4px;
   white-space: nowrap;
 }
-
-.userCard {
+.brandMeta strong {
+  color: white;
+  font-size: 15px;
+  letter-spacing: -0.025em;
+}
+.brandMeta > span {
+  color: #9cacc0;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+}
+.create {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: var(--space-3);
-  margin: 0 var(--space-3) var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--color-sidebar-hover);
+  gap: 10px;
+  min-height: 44px;
+  margin: 0 8px 26px;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 12px;
+  font-weight: 650;
 }
-
-.avatar {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-  background: var(--color-sidebar-active);
-  color: var(--color-text-invert);
-  font-size: var(--text-xs);
-  font-weight: 700;
+.create:hover,
+.createActive {
+  background: var(--color-primary-hover);
 }
-
-.userMeta {
-  display: grid;
-  min-width: 0;
-}
-
-.userName {
-  font-weight: 600;
-  font-size: var(--text-sm);
-  color: var(--color-text-invert);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.userRole {
-  font-size: var(--text-xs);
-  color: var(--color-sidebar-text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-transform: capitalize;
-}
-
 .nav {
   display: grid;
-  gap: 2px;
-  padding: 0 var(--space-2);
+  align-content: start;
+  gap: 26px;
   flex: 1;
 }
-
+.group {
+  display: grid;
+  gap: 5px;
+}
+.groupLabel {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #9cacc0;
+  text-transform: uppercase;
+  padding: 0 14px 7px;
+}
 .navItem {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  color: var(--color-sidebar-text);
-  font-size: var(--text-md);
-  font-weight: 500;
-  white-space: nowrap;
+  gap: 10px;
+  padding: 9px 12px;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 550;
+  position: relative;
 }
-
+.navIcon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  flex-shrink: 0;
+}
 .navItem:hover {
   background: var(--color-sidebar-hover);
-  color: var(--color-text-invert);
+  color: white;
 }
-
 .active,
 .active:hover {
-  background: var(--color-sidebar-active);
-  color: var(--color-text-invert);
+  background: #20384a;
+  color: #a0eeeb;
 }
-
+.activeDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #81dcda;
+  margin-left: auto;
+}
+.footer {
+  margin-top: 28px;
+  padding: 16px 4px 0;
+  border-top: 1px solid #2c3b4e;
+}
+.userCard {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+}
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #294455;
+  color: #b0efec;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.userMeta {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.userMeta strong {
+  font-size: 12px;
+  color: white;
+}
+.userMeta > span {
+  font-size: 10px;
+  text-transform: capitalize;
+  color: #9cacc0;
+}
+.userMeta strong,
+.userMeta > span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .collapseButton {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  margin: var(--space-3) var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  justify-content: center;
+  gap: 10px;
+  min-height: 40px;
+  width: 100%;
   border: 0;
-  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-sidebar-text-dim);
-  font-size: var(--text-sm);
-  font-weight: 550;
+  color: #9cacc0;
+  font-size: 10px;
+  margin-top: 10px;
 }
-
 .collapseButton:hover {
-  background: var(--color-sidebar-hover);
-  color: var(--color-text-invert);
+  color: white;
 }
-
+.collapsed .brandMeta,
+.collapsed .create > span,
+.collapsed .groupLabel,
+.collapsed .navLabel,
+.collapsed .activeDot,
+.collapsed .userMeta,
+.collapsed .collapseButton > span {
+  display: none;
+}
+.collapsed {
+  padding-inline: 8px;
+}
 .collapsed .brand,
 .collapsed .navItem,
-.collapsed .collapseButton {
+.collapsed .userCard {
   justify-content: center;
-  padding-left: 0;
-  padding-right: 0;
+  padding-inline: 0;
 }
-
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
+.collapsed .create {
+  margin-inline: 0;
+}
+@media (max-width: 760px) {
+  .sidebar {
+    top: 8px;
+    height: calc(100dvh - 16px);
+    margin: 8px 0 8px 8px;
+    padding: 16px 6px 8px;
+    border-radius: 14px;
+  }
+  .brandMeta,
+  .create > span,
+  .groupLabel,
+  .navLabel,
+  .activeDot,
+  .userMeta,
+  .collapseButton {
+    display: none;
+  }
+  .brand,
+  .navItem,
+  .userCard {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .logo {
+    width: 34px;
+    height: 34px;
+  }
+  .create {
+    margin-inline: 0;
+  }
+  .nav {
+    gap: 18px;
+  }
+  .footer {
+    padding-inline: 0;
+  }
 }

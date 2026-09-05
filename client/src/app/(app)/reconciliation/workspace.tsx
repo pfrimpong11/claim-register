@@ -99,14 +99,43 @@ export function ReconciliationWorkspace() {
         }
       />
       {error ? <p role="alert">{error}</p> : null}
-      <TransactionsPanel
-        transactions={transactions}
-        payments={payments}
-        loading={loading}
-        onChanged={reload}
-      />
-      <PaymentsPanel payments={payments} loading={loading} />
-      <ImportsPanel imports={imports} loading={loading} />
+      <nav className={styles.workflow} aria-label="Reconciliation workflow">
+        <a href="#reconciliation-imports">
+          <span>01</span>
+          <span>
+            <strong>Import evidence</strong>
+            <small>Bank and mobile-money statements</small>
+          </span>
+        </a>
+        <a href="#reconciliation-transactions">
+          <span>02</span>
+          <span>
+            <strong>Match transactions</strong>
+            <small>Allocate statement amounts to payments</small>
+          </span>
+        </a>
+        <a href="#reconciliation-payments">
+          <span>03</span>
+          <span>
+            <strong>Review payments</strong>
+            <small>Track matched and unmatched balances</small>
+          </span>
+        </a>
+      </nav>
+      <section id="reconciliation-transactions">
+        <TransactionsPanel
+          transactions={transactions}
+          payments={payments}
+          loading={loading}
+          onChanged={reload}
+        />
+      </section>
+      <section id="reconciliation-payments">
+        <PaymentsPanel payments={payments} loading={loading} />
+      </section>
+      <section id="reconciliation-imports">
+        <ImportsPanel imports={imports} loading={loading} />
+      </section>
       <Drawer open={importOpen} title="Import Transactions" onClose={() => setImportOpen(false)}>
         <form onSubmit={upload} className={styles.formStack}>
           <Field label="Settlement Account" htmlFor="import-account" required>

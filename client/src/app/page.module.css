@@ -45,3 +45,17 @@
   margin-top: var(--space-3);
   width: 100%;
 }
+
+.card {
+  border-radius: 20px;
+  padding: 44px 32px;
+  box-shadow: 0 12px 40px rgb(15 27 45 / 6%);
+}
+.logo {
+  border-radius: 16px;
+  color: #a0eeeb;
+}
+.lede {
+  font-size: 13px;
+  line-height: 1.8;
+}

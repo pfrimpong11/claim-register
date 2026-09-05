@@ -34,7 +34,7 @@ export function ActivityTab({ claim }: { claim: Claim }) {
 
   useEffect(() => {
     if (!canViewAudit) return;
-    apiRequest<{ data: AuditEntry[] }>(`/audit-logs?entityId=${claim.id}`)
+    apiRequest<{ data: AuditEntry[] }>(`/audit-logs?claimId=${claim.id}`)
       .then((response) => setEntries(response.data))
       .catch((e: unknown) =>
         setError(e instanceof Error ? e.message : 'The audit trail could not load.'),

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/ui/toast';
 import { ClaimsRegister, waitForReportCompletion } from './register';
@@ -59,7 +59,11 @@ describe('ClaimsRegister', () => {
       'fetch',
       vi.fn().mockImplementation((url: string) => {
         const payload = String(url).includes('/currencies') ? { data: [] } : claimsPayload;
-        return Promise.resolve({ ok: true, status: 200, json: async () => payload });
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => (String(url).includes('/currencies') ? { data: [] } : payload),
+        });
       }),
     );
   });
@@ -78,6 +82,54 @@ describe('ClaimsRegister', () => {
       expect.stringContaining('/claims?currency=GHS'),
       expect.objectContaining({ credentials: 'include' }),
     );
+  });
+
+  it('places a separate currency totals table below the register using full filtered totals', async () => {
+    const payload = {
+      ...claimsPayload,
+      summaries: [
+        { ...claimsPayload.summaries[0], claimCount: 12, outstandingAmount: '21600' },
+        {
+          ...claimsPayload.summaries[0],
+          currencyCode: 'USD',
+          claimCount: 3,
+          outstandingAmount: '900',
+        },
+      ],
+    };
+    vi.mocked(fetch).mockImplementation(
+      async (url) =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => (String(url).includes('/currencies') ? { data: [] } : payload),
+        }) as Response,
+    );
+    const { container } = render(
+      <ToastProvider>
+        <ClaimsRegister />
+      </ToastProvider>,
+    );
+    await screen.findByText('CLM-2026-000001');
+    const table = screen.getByRole('table', { name: 'Claims totals by currency' });
+    expect(screen.getAllByRole('table')[1]).toBe(table);
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((cell) => cell.textContent),
+    ).toEqual([
+      'Currency',
+      'Estimated Loss',
+      'Approved (Indemnity)',
+      'Total Paid',
+      'Outstanding',
+      'Overpaid',
+    ]);
+    const ghs = within(table).getByText('GHS', { exact: true }).closest('tr')!;
+    expect(within(ghs).getByText('GHS 21,600.00')).toBeInTheDocument();
+    expect(within(ghs).queryByText(/USD/)).not.toBeInTheDocument();
+    expect(within(table).getByText('USD 900.00')).toBeInTheDocument();
+    expect(container.querySelector('article')).not.toBeInTheDocument();
   });
 
   it('omits blank filter values when applying filters', async () => {
@@ -104,6 +156,22 @@ describe('ClaimsRegister', () => {
 
     await screen.findByText('CLM-2026-000001');
     expect(screen.queryByRole('button', { name: 'Export' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Create Claim' })).not.toBeInTheDocument();
+  });
+
+  it('retains advanced filters when the filter panel is collapsed', async () => {
+    render(
+      <ToastProvider>
+        <ClaimsRegister />
+      </ToastProvider>,
+    );
+    await screen.findByText('CLM-2026-000001');
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    fireEvent.change(screen.getByLabelText('Policy'), { target: { value: 'POL-00001' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(navigation.push).toHaveBeenCalledWith('/claims?currency=GHS&policy=POL-00001');
+    expect(screen.getByRole('link', { name: 'Clear all' })).toHaveAttribute('href', '/claims');
   });
 
   it('stops waiting when an export remains pending beyond the polling limit', async () => {

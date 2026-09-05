@@ -82,3 +82,52 @@ describe('overlay body scroll locking', () => {
     expect(reason).toHaveFocus();
   });
 });
+
+it('routes Escape only to the topmost overlay and returns focus to the parent', () => {
+  const parentClose = vi.fn();
+  const childClose = vi.fn();
+  const { rerender } = render(
+    <Drawer open title="Parent" onClose={parentClose}>
+      <button>Open child</button>
+    </Drawer>,
+  );
+  screen.getByRole('button', { name: 'Open child' }).focus();
+  rerender(
+    <>
+      <Drawer open title="Parent" onClose={parentClose}>
+        <button>Open child</button>
+      </Drawer>
+      <Drawer open title="Child" onClose={childClose}>
+        <button>Child action</button>
+      </Drawer>
+    </>,
+  );
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(childClose).toHaveBeenCalledTimes(1);
+  expect(parentClose).not.toHaveBeenCalled();
+  rerender(
+    <>
+      <Drawer open title="Parent" onClose={parentClose}>
+        <button>Open child</button>
+      </Drawer>
+      <Drawer open={false} title="Child" onClose={childClose}>
+        <button>Child action</button>
+      </Drawer>
+    </>,
+  );
+  expect(screen.getByRole('button', { name: 'Open child' })).toHaveFocus();
+});
+
+it('keeps keyboard focus inside a dialog and skips disabled controls', () => {
+  render(
+    <Drawer open title="Keyboard" onClose={() => undefined}>
+      <input aria-label="Name" />
+      <button disabled>Unavailable</button>
+      <button>Save</button>
+    </Drawer>,
+  );
+  fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+  expect(screen.getByRole('button', { name: 'Save' })).toHaveFocus();
+  fireEvent.keyDown(document, { key: 'Tab' });
+  expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+});

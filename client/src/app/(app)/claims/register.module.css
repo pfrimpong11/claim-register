@@ -1,0 +1,98 @@
+.paid {
+  color: #067467;
+}
+.registerCard {
+  min-width: 0;
+}
+.filterForm {
+  display: grid;
+  gap: 16px;
+  padding-bottom: 20px;
+}
+.filterForm .filterGrid {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 2fr) minmax(150px, 1.4fr) minmax(100px, 0.7fr) minmax(140px, 1fr)
+    minmax(140px, 1fr);
+  align-items: end;
+  gap: 14px;
+}
+.filterForm .filterGrid > div {
+  min-width: 0;
+}
+.filterForm .filterGrid > button,
+.filterForm .filterGrid > a {
+  justify-self: start;
+}
+.tableArea {
+  margin: 0 -20px -20px;
+  border-top: 1px solid var(--color-border);
+}
+.tableArea table {
+  min-width: 1050px;
+}
+.tableArea td {
+  padding: 20px 16px;
+}
+.identity {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  min-width: 135px;
+}
+.identity > span:last-child,
+.identity small {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+.figures {
+  display: grid;
+  gap: 7px;
+  min-width: 160px;
+  font-size: 11px;
+}
+.figures > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+.figures dt {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+.figures dd {
+  margin: 0;
+  white-space: nowrap;
+  font-weight: 550;
+}
+@media (max-width: 1200px) {
+  .filterForm .filterGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .filterForm .filterGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .filterForm .filterGrid > button,
+  .filterForm .filterGrid > a {
+    width: 100%;
+  }
+}
+
+.filterActions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-top: 4px;
+}
+.filterActions > :last-child {
+  margin-left: auto;
+}
+@media (max-width: 760px) {
+  .filterActions {
+    flex-wrap: wrap;
+  }
+}

@@ -9,6 +9,7 @@ export class AuditRepository {
       ...(query.action && { action: { contains: query.action, mode: 'insensitive' } }),
       ...(query.entityType && { entityType: query.entityType }),
       ...(query.entityId && { entityId: query.entityId }),
+      ...(query.claimId && { claimId: query.claimId }),
       ...(query.actorUserId && { actorUserId: query.actorUserId }),
       ...((query.from || query.to) && {
         occurredAt: { ...(query.from && { gte: query.from }), ...(query.to && { lte: query.to }) },

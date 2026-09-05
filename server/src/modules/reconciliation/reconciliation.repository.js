@@ -99,7 +99,10 @@ export class ReconciliationRepository {
   /** @param {import('@prisma/client').Prisma.TransactionClient} tx @param {string} id */
   async lockMatch(tx, id) {
     await tx.$queryRaw`SELECT id FROM reconciliation_matches WHERE id = ${id}::uuid FOR UPDATE`;
-    return tx.reconciliationMatch.findUnique({ where: { id } });
+    return tx.reconciliationMatch.findUnique({
+      where: { id },
+      include: { payment: { select: { claimId: true } } },
+    });
   }
   /** @param {import('@prisma/client').Prisma.TransactionClient} tx @param {import('@prisma/client').Prisma.ReconciliationMatchUncheckedCreateInput} data */ createMatch(
     tx,

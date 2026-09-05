@@ -98,33 +98,33 @@ export default function AuditPage() {
         title="Audit Logs"
         subtitle="Every recorded action with masked before/after values."
       />
-      <Card>
-        <form onSubmit={applyFilters}>
-          <FilterBar>
-            <FilterItem label="Action" htmlFor="audit-action" grow>
-              <Input id="audit-action" name="action" placeholder="e.g. PAYMENT_APPROVED" />
-            </FilterItem>
-            <FilterItem label="Entity type" htmlFor="audit-entity-type">
-              <Input id="audit-entity-type" name="entityType" placeholder="e.g. CLAIM" />
-            </FilterItem>
-            <FilterItem label="Entity ID" htmlFor="audit-entity-id">
-              <Input id="audit-entity-id" name="entityId" />
-            </FilterItem>
-            <FilterItem label="From" htmlFor="audit-from">
-              <DateInput id="audit-from" name="from" />
-            </FilterItem>
-            <FilterItem label="To" htmlFor="audit-to">
-              <DateInput id="audit-to" name="to" />
-            </FilterItem>
-            <FilterSpacer />
-            <Button type="submit" variant="secondary" icon="filter">
-              Filter
-            </Button>
-          </FilterBar>
-        </form>
-      </Card>
-      {error ? <p role="alert">{error}</p> : null}
-      <Card flush>
+      <Card title="Audit register" subtitle="Filter and inspect recorded actions" flush>
+        <div className={styles.filters}>
+          <form onSubmit={applyFilters}>
+            <FilterBar>
+              <FilterItem label="Action" htmlFor="audit-action" grow>
+                <Input id="audit-action" name="action" placeholder="e.g. PAYMENT_APPROVED" />
+              </FilterItem>
+              <FilterItem label="Entity type" htmlFor="audit-entity-type">
+                <Input id="audit-entity-type" name="entityType" placeholder="e.g. CLAIM" />
+              </FilterItem>
+              <FilterItem label="Entity ID" htmlFor="audit-entity-id">
+                <Input id="audit-entity-id" name="entityId" />
+              </FilterItem>
+              <FilterItem label="From" htmlFor="audit-from">
+                <DateInput id="audit-from" name="from" />
+              </FilterItem>
+              <FilterItem label="To" htmlFor="audit-to">
+                <DateInput id="audit-to" name="to" />
+              </FilterItem>
+              <FilterSpacer />
+              <Button type="submit" variant="secondary" icon="filter">
+                Filter
+              </Button>
+            </FilterBar>
+          </form>
+        </div>
+        {error ? <p role="alert">{error}</p> : null}
         <DataTable
           columns={COLUMNS}
           rows={entries ?? []}

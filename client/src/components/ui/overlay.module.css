@@ -114,3 +114,86 @@
   justify-content: flex-end;
   gap: var(--space-2);
 }
+
+.backdrop {
+  background: rgb(15 27 45 / 55%);
+  backdrop-filter: blur(3px);
+  padding: 20px;
+}
+.modal {
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgb(15 27 45 / 25%);
+}
+.header {
+  padding: 22px 24px;
+  background: #f4f8f9;
+  align-items: flex-start;
+}
+.title {
+  font-size: 19px;
+  letter-spacing: -0.025em;
+  padding-top: 4px;
+}
+.close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: white;
+  flex-shrink: 0;
+}
+.body {
+  padding: 24px;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+.footer {
+  padding: 18px 24px;
+  background: #f8fafc;
+  flex-wrap: wrap;
+}
+.drawer {
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: min(460px, calc(100vw - 24px));
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+.confirmForm {
+  gap: 22px;
+}
+.confirmActions {
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+.message {
+  font-size: 13px;
+  line-height: 1.8;
+}
+@media (max-width: 600px) {
+  .backdrop {
+    padding: 10px;
+  }
+  .modal {
+    max-height: calc(100dvh - 20px);
+    border-radius: 14px;
+  }
+  .header,
+  .body,
+  .footer {
+    padding: 18px;
+  }
+  .drawer {
+    top: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: calc(100vw - 16px);
+    border-radius: 14px;
+  }
+}

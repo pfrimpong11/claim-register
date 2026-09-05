@@ -30,11 +30,11 @@ test('admin can inspect the seeded claim-to-payment journey', async ({ page }) =
   await page.getByRole('link', { name: 'CLM-DEMO-2026-000012' }).click();
   await expect(page.getByRole('heading', { name: 'CLM-DEMO-2026-000012' })).toBeVisible();
   await expect(page.getByText('Settled and paid', { exact: true }).first()).toBeVisible();
-  await page.getByRole('tab', { name: 'Payables' }).click();
+  await page.getByRole('button', { name: 'Payables' }).click();
   await expect(page.getByRole('heading', { name: 'Indemnity payables' })).toBeVisible();
-  await page.getByRole('tab', { name: 'Payments' }).click();
+  await page.getByRole('button', { name: 'Payments' }).click();
   await expect(page.getByRole('heading', { name: 'Payments' })).toBeVisible();
-  await page.getByRole('tab', { name: 'Reconciliation' }).click();
+  await page.getByRole('button', { name: 'Reconciliation' }).click();
   await expect(page.getByText(/Reconciliation: MATCHED/).first()).toBeVisible();
 
   await page.goto('/reconciliation');

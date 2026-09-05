@@ -142,6 +142,7 @@ export class ReconciliationService {
         action: 'RECONCILIATION_MATCHED',
         entityType: 'RECONCILIATION_MATCH',
         entityId: match.id,
+        claimId: payment.claimId,
         correlationId: context.correlationId,
         newValues: {
           paymentId: payment.id,
@@ -209,6 +210,7 @@ export class ReconciliationService {
         action: 'RECONCILIATION_UNMATCHED',
         entityType: 'RECONCILIATION_MATCH',
         entityId: id,
+        claimId: match.payment.claimId,
         correlationId: context.correlationId,
         oldValues: { status: 'ACTIVE' },
         newValues: { status: 'REVERSED', reason: input.reason },

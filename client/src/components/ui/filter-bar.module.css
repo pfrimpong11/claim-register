@@ -24,3 +24,18 @@
 .spacer {
   flex: 1 1 auto;
 }
+
+.item {
+  min-width: min(9rem, 100%);
+}
+.label {
+  font-size: 11px;
+}
+@media (max-width: 600px) {
+  .bar > .item {
+    flex: 1 1 100%;
+  }
+  .spacer {
+    display: none;
+  }
+}

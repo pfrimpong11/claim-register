@@ -15,11 +15,13 @@
 ```json
 {
   "error": {
-    "code": "PAYMENT_EXCEEDS_OUTSTANDING",
-    "message": "The settlement amount exceeds the payable's outstanding balance.",
+    "code": "PAYMENT_OVERPAYMENT_CONFIRMATION_REQUIRED",
+    "message": "This payment exceeds the outstanding indemnity. Confirm the external overpayment and provide a reason to continue.",
     "details": {
       "outstanding": "1000.00",
-      "currency": "GHS"
+      "overpayment": "50.00",
+      "currency": "GHS",
+      "requiresConfirmation": true
     },
     "correlationId": "..."
   }
@@ -80,9 +82,9 @@ GET    /health/ready
 
 For the exercise, payable creation always creates an `INDEMNITY` draft in the claim currency. Only drafts can be cancelled. Approval is a locked, atomic transition that posts the source-linked Claims Expense/Claims Payable journal; repeating an approval returns a conflict rather than creating another journal.
 
-Payment creation accepts `paymentDate`, decimal-string `paymentAmount`, `paymentCurrencyCode`, canonical decimal-string `fxRate`, `settlementAccountId`, and an optional reference. The server derives and stores `settlementAmount` in claim currency using half-up ISO currency rounding. Same-currency payments require rate `1`. Creation, approval, success, and reversal require `Idempotency-Key`; reusing a key with a different request returns `409`.
+Payment creation accepts `paymentDate`, decimal-string `paymentAmount`, `paymentCurrencyCode`, canonical decimal-string `fxRate`, `settlementAccountId`, and an optional reference. The server derives and stores `settlementAmount` in claim currency using half-up ISO currency rounding. Same-currency payments require rate `1`. If the settlement equivalent exceeds current outstanding, creation returns `PAYMENT_OVERPAYMENT_CONFIRMATION_REQUIRED` unless `confirmOverpayment: true` and a valid `overpaymentReason` are supplied. Creation, approval, success, and reversal require `Idempotency-Key`; reusing a key with a different request returns `409`.
 
-Marking a payment successful locks its approved payable, rechecks successful settlement totals, and atomically posts the Claims Payable/Settlement Assets journal. Reversal records its actor/reason and posts a journal linked to the original; it never deletes or rewrites the historical payment facts.
+Marking a payment successful locks its approved payable and rechecks successful settlement totals. A newly detected or existing excess again requires `confirmOverpayment: true` and `overpaymentReason`. The transaction stores the confirmed excess and atomically posts Claims Payable up to the remaining liability, Claims Overpayment Receivable for the excess, and Settlement Assets for the full transfer. Reversal records its actor/reason and exactly reverses the original journal lines; it never deletes or rewrites the historical payment facts.
 
 Transaction imports accept a CSV file plus `settlementAccountId` and `sourceType` as multipart form data and return `202`. The durable import record progresses through pending/processing/completed states while the shared worker validates each row. Required headers are `externalReference,transactionDate,valueDate,transactionType,amount,currencyCode,description`. Valid rows continue when another row is malformed or duplicated, and bounded row-level errors remain available on the import record.
 

@@ -64,6 +64,18 @@ export class PaymentsService {
         settlementCurrencyCode: payable.currencyCode,
         decimalPlaces: payable.claim.currency.decimalPlaces,
       });
+      const paid =
+        (await this.repository.paidForPayable(tx, payableId))._sum.settlementAmount ??
+        new Prisma.Decimal(0);
+      const outstanding = Prisma.Decimal.max(payable.amount.minus(paid), 0);
+      const potentialOverpayment = Prisma.Decimal.max(settlementAmount.minus(outstanding), 0);
+      if (potentialOverpayment.gt(0) && !input.confirmOverpayment)
+        overpaymentConfirmationRequired({
+          outstanding,
+          paymentAmount: settlementAmount,
+          overpayment: potentialOverpayment,
+          currency: payable.currencyCode,
+        });
       const paymentNumber = await this.repository.nextPaymentNumber(
         tx,
         input.paymentDate.getUTCFullYear(),
@@ -89,7 +101,14 @@ export class PaymentsService {
         entityType: 'CLAIM_PAYMENT',
         entityId: payment.id,
         correlationId: context.correlationId,
-        newValues: publicPayment(payment),
+        newValues: {
+          ...publicPayment(payment),
+          ...(potentialOverpayment.gt(0) && {
+            overpaymentAcknowledged: true,
+            potentialOverpayment: potentialOverpayment.toString(),
+            reason: input.overpaymentReason,
+          }),
+        },
       });
       const result = serialize(payment);
       await saveIdempotency(
@@ -125,95 +144,127 @@ export class PaymentsService {
       return serialize(updated);
     });
   }
-  /** @param {string} id @param {Context} context */
-  succeed(id, context) {
-    return this.transitionWithIdempotency(id, 'PAYMENT_SUCCEED', context, async (tx, payment) => {
-      if (payment.status !== 'APPROVED' && payment.status !== 'PROCESSING')
-        conflict('Only an approved or processing payment can succeed.');
-      const payable = await this.repository.lockPayable(tx, payment.payableId);
-      if (!payable || payable.status !== 'APPROVED')
-        conflict('The payable is not available for payment.');
-      const paid =
-        (await this.repository.paidForPayable(tx, payment.payableId))._sum.settlementAmount ??
-        new Prisma.Decimal(0);
-      const outstanding = payable.amount.minus(paid);
-      if (payment.settlementAmount.gt(outstanding))
-        throw new AppError({
-          code: 'PAYMENT_EXCEEDS_OUTSTANDING',
-          message: 'The settlement amount exceeds the payable outstanding balance.',
-          status: 409,
-          details: { outstanding: outstanding.toString(), currency: payable.currencyCode },
-        });
-      const accounts = await this.repository.paymentAccounts(tx);
-      const liability = accounts.find((a) => a.code === 'CLAIMS_PAYABLE');
-      const asset = accounts.find((a) => a.code === 'SETTLEMENT_ASSETS');
-      if (!liability || !asset)
-        throw new AppError({
-          code: 'GL_CONFIGURATION_INVALID',
-          message: 'Required general-ledger accounts are unavailable.',
-          status: 503,
-        });
-      const before = await position(this.repository, tx, payment.claimId);
-      const now = new Date();
-      const updated = await this.repository.update(tx, id, {
-        status: 'SUCCESSFUL',
-        succeededBy: context.userId,
-        succeededAt: now,
-      });
-      const journal = await this.repository.createJournal(tx, {
-        journalNumber: await this.repository.nextJournalNumber(tx, now.getUTCFullYear()),
-        entryDate: payment.paymentDate,
-        sourceType: 'CLAIM_PAYMENT',
-        sourceId: id,
-        claimId: payment.claimId,
-        description: `Payment ${payment.paymentNumber} succeeded`,
-        currencyCode: payment.settlementCurrencyCode,
-        postedBy: context.userId,
-        lines: {
-          create: [
-            {
-              glAccountId: liability.id,
-              claimId: payment.claimId,
-              partyId: payment.payeePartyId,
-              currencyCode: payment.settlementCurrencyCode,
-              debitAmount: payment.settlementAmount,
-              creditAmount: 0,
-            },
-            {
-              glAccountId: asset.id,
-              claimId: payment.claimId,
-              partyId: payment.payeePartyId,
-              currencyCode: payment.settlementCurrencyCode,
-              debitAmount: 0,
-              creditAmount: payment.settlementAmount,
-            },
-          ],
-        },
-      });
-      const after = await position(this.repository, tx, payment.claimId);
-      await recordStatus(
-        tx,
-        payment.claimId,
-        before.status,
-        after.status,
-        context.userId,
-        'Successful indemnity payment recorded',
-      );
-      await this.auditService.write(tx, {
-        actorUserId: context.userId,
-        action: 'PAYMENT_SUCCEEDED',
-        entityType: 'CLAIM_PAYMENT',
-        entityId: id,
-        correlationId: context.correlationId,
-        oldValues: { status: payment.status },
-        newValues: {
+  /** @param {string} id @param {{confirmOverpayment:boolean,overpaymentReason?:string}} input @param {Context} context */
+  succeed(id, input, context) {
+    return this.transitionWithIdempotency(
+      id,
+      'PAYMENT_SUCCEED',
+      context,
+      async (tx, payment) => {
+        if (payment.status !== 'APPROVED' && payment.status !== 'PROCESSING')
+          conflict('Only an approved or processing payment can succeed.');
+        const payable = await this.repository.lockPayable(tx, payment.payableId);
+        if (!payable || payable.status !== 'APPROVED')
+          conflict('The payable is not available for payment.');
+        const paid =
+          (await this.repository.paidForPayable(tx, payment.payableId))._sum.settlementAmount ??
+          new Prisma.Decimal(0);
+        const outstanding = Prisma.Decimal.max(payable.amount.minus(paid), 0);
+        const liabilitySettlement = Prisma.Decimal.min(payment.settlementAmount, outstanding);
+        const overpayment = Prisma.Decimal.max(payment.settlementAmount.minus(outstanding), 0);
+        if (overpayment.gt(0) && !input.confirmOverpayment)
+          overpaymentConfirmationRequired({
+            outstanding,
+            paymentAmount: payment.settlementAmount,
+            overpayment,
+            currency: payable.currencyCode,
+          });
+        const accounts = await this.repository.paymentAccounts(tx);
+        const liability = accounts.find((a) => a.code === 'CLAIMS_PAYABLE');
+        const receivable = accounts.find((a) => a.code === 'CLAIMS_OVERPAYMENT_RECEIVABLE');
+        const asset = accounts.find((a) => a.code === 'SETTLEMENT_ASSETS');
+        if (!liability || !asset || (overpayment.gt(0) && !receivable))
+          throw new AppError({
+            code: 'GL_CONFIGURATION_INVALID',
+            message: 'Required general-ledger accounts are unavailable.',
+            status: 503,
+          });
+        const receivableId = receivable?.id;
+        const before = await position(this.repository, tx, payment.claimId);
+        const now = new Date();
+        const updated = await this.repository.update(tx, id, {
           status: 'SUCCESSFUL',
-          settlementAmount: payment.settlementAmount.toString(),
-          journalNumber: journal.journalNumber,
-        },
-      });
-      return { ...serialize(updated), journals: [serializeJournal(journal)] };
-    });
+          succeededBy: context.userId,
+          succeededAt: now,
+          overpaymentAmount: overpayment,
+          overpaymentReason: overpayment.gt(0) ? input.overpaymentReason : null,
+          overpaymentConfirmedBy: overpayment.gt(0) ? context.userId : null,
+          overpaymentConfirmedAt: overpayment.gt(0) ? now : null,
+        });
+        const journal = await this.repository.createJournal(tx, {
+          journalNumber: await this.repository.nextJournalNumber(tx, now.getUTCFullYear()),
+          entryDate: payment.paymentDate,
+          sourceType: 'CLAIM_PAYMENT',
+          sourceId: id,
+          claimId: payment.claimId,
+          description: `Payment ${payment.paymentNumber} succeeded`,
+          currencyCode: payment.settlementCurrencyCode,
+          postedBy: context.userId,
+          lines: {
+            create: [
+              ...(liabilitySettlement.gt(0)
+                ? [
+                    {
+                      glAccountId: liability.id,
+                      claimId: payment.claimId,
+                      partyId: payment.payeePartyId,
+                      currencyCode: payment.settlementCurrencyCode,
+                      debitAmount: liabilitySettlement,
+                      creditAmount: 0,
+                    },
+                  ]
+                : []),
+              ...(overpayment.gt(0)
+                ? [
+                    {
+                      glAccountId: receivableId ?? liability.id,
+                      claimId: payment.claimId,
+                      partyId: payment.payeePartyId,
+                      currencyCode: payment.settlementCurrencyCode,
+                      debitAmount: overpayment,
+                      creditAmount: 0,
+                    },
+                  ]
+                : []),
+              {
+                glAccountId: asset.id,
+                claimId: payment.claimId,
+                partyId: payment.payeePartyId,
+                currencyCode: payment.settlementCurrencyCode,
+                debitAmount: 0,
+                creditAmount: payment.settlementAmount,
+              },
+            ],
+          },
+        });
+        const after = await position(this.repository, tx, payment.claimId);
+        await recordStatus(
+          tx,
+          payment.claimId,
+          before.status,
+          after.status,
+          context.userId,
+          'Successful indemnity payment recorded',
+        );
+        await this.auditService.write(tx, {
+          actorUserId: context.userId,
+          action: 'PAYMENT_SUCCEEDED',
+          entityType: 'CLAIM_PAYMENT',
+          entityId: id,
+          correlationId: context.correlationId,
+          oldValues: { status: payment.status },
+          newValues: {
+            status: 'SUCCESSFUL',
+            settlementAmount: payment.settlementAmount.toString(),
+            overpaymentAmount: overpayment.toString(),
+            overpaymentReason: overpayment.gt(0) ? input.overpaymentReason : undefined,
+            journalNumber: journal.journalNumber,
+          },
+        });
+        return { ...serialize(updated), journals: [serializeJournal(journal)] };
+      },
+      input,
+    );
   }
   /** @param {string} id @param {{reason:string}} input @param {Context} context */
   reverse(id, input, context) {
@@ -237,15 +288,6 @@ export class PaymentsService {
             message: 'The original payment journal is unavailable.',
             status: 503,
           });
-        const accounts = await this.repository.paymentAccounts(tx);
-        const liability = accounts.find((a) => a.code === 'CLAIMS_PAYABLE');
-        const asset = accounts.find((a) => a.code === 'SETTLEMENT_ASSETS');
-        if (!liability || !asset)
-          throw new AppError({
-            code: 'GL_CONFIGURATION_INVALID',
-            message: 'Required general-ledger accounts are unavailable.',
-            status: 503,
-          });
         const before = await position(this.repository, tx, payment.claimId);
         const now = new Date();
         const updated = await this.repository.update(tx, id, {
@@ -265,24 +307,14 @@ export class PaymentsService {
           postedBy: context.userId,
           reversalOfEntryId: originalJournal.id,
           lines: {
-            create: [
-              {
-                glAccountId: asset.id,
-                claimId: payment.claimId,
-                partyId: payment.payeePartyId,
-                currencyCode: payment.settlementCurrencyCode,
-                debitAmount: payment.settlementAmount,
-                creditAmount: 0,
-              },
-              {
-                glAccountId: liability.id,
-                claimId: payment.claimId,
-                partyId: payment.payeePartyId,
-                currencyCode: payment.settlementCurrencyCode,
-                debitAmount: 0,
-                creditAmount: payment.settlementAmount,
-              },
-            ],
+            create: originalJournal.lines.map((line) => ({
+              glAccountId: line.glAccountId,
+              claimId: line.claimId,
+              partyId: line.partyId,
+              currencyCode: line.currencyCode,
+              debitAmount: line.creditAmount,
+              creditAmount: line.debitAmount,
+            })),
           },
         });
         const after = await position(this.repository, tx, payment.claimId);
@@ -336,6 +368,21 @@ export class PaymentsService {
 /** @param {string} message @returns {never} */
 function conflict(message) {
   throw new AppError({ code: 'PAYMENT_STATE_CONFLICT', message, status: 409 });
+}
+/** @param {{outstanding:import('@prisma/client').Prisma.Decimal,paymentAmount:import('@prisma/client').Prisma.Decimal,overpayment:import('@prisma/client').Prisma.Decimal,currency:string}} values @returns {never} */
+function overpaymentConfirmationRequired(values) {
+  throw new AppError({
+    code: 'PAYMENT_OVERPAYMENT_CONFIRMATION_REQUIRED',
+    message: `This payment exceeds the outstanding indemnity by ${values.currency} ${values.overpayment.toString()}. Confirm the external overpayment and provide a reason to continue.`,
+    status: 409,
+    details: {
+      outstanding: values.outstanding.toString(),
+      paymentAmount: values.paymentAmount.toString(),
+      overpayment: values.overpayment.toString(),
+      currency: values.currency,
+      requiresConfirmation: true,
+    },
+  });
 }
 /** @param {string} value @param {number} places @param {string} label */ function validateScale(
   value,
@@ -408,6 +455,7 @@ function publicPayment(p) {
     paymentCurrencyCode: p.paymentCurrencyCode,
     fxRate: p.fxRate.toString(),
     settlementAmount: p.settlementAmount.toString(),
+    overpaymentAmount: p.overpaymentAmount?.toString() ?? '0',
     settlementCurrencyCode: p.settlementCurrencyCode,
     status: p.status,
   };
@@ -446,5 +494,5 @@ function serializeJournal(j) {
   };
 }
 
-/** @typedef {{paymentNumber:string,payableId:string,paymentAmount:import('@prisma/client').Prisma.Decimal,paymentCurrencyCode:string,fxRate:import('@prisma/client').Prisma.Decimal,settlementAmount:import('@prisma/client').Prisma.Decimal,settlementCurrencyCode:string,status:string,reconciliationMatches?:Array<{matchedAmount:import('@prisma/client').Prisma.Decimal}>} & Record<string,unknown>} PaymentShape */
+/** @typedef {{paymentNumber:string,payableId:string,paymentAmount:import('@prisma/client').Prisma.Decimal,paymentCurrencyCode:string,fxRate:import('@prisma/client').Prisma.Decimal,settlementAmount:import('@prisma/client').Prisma.Decimal,settlementCurrencyCode:string,overpaymentAmount?:import('@prisma/client').Prisma.Decimal,status:string,reconciliationMatches?:Array<{matchedAmount:import('@prisma/client').Prisma.Decimal}>} & Record<string,unknown>} PaymentShape */
 /** @typedef {{lines?:Array<{debitAmount:import('@prisma/client').Prisma.Decimal,creditAmount:import('@prisma/client').Prisma.Decimal} & Record<string,unknown>>} & Record<string,unknown>} JournalShape */

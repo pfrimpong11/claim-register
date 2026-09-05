@@ -1,4 +1,12 @@
 import { z } from 'zod';
+
+/**
+ * @template {z.ZodTypeAny} T
+ * @param {T} schema
+ */
+const optionalQueryValue = (schema) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+
 export const claimBodySchema = z
   .object({
     policyId: z.string().uuid(),
@@ -15,17 +23,17 @@ export const claimBodySchema = z
   });
 export const claimsQuerySchema = z.object({
   search: z.string().trim().max(100).default(''),
-  currency: z.string().length(3).optional(),
+  currency: optionalQueryValue(z.string().length(3)),
   policy: z.string().trim().max(100).optional(),
   insured: z.string().trim().max(200).optional(),
-  status: z
-    .enum(['RESERVED_NOT_SETTLED', 'SETTLED_PAYMENT_OUTSTANDING', 'SETTLED_AND_PAID'])
-    .optional(),
+  status: optionalQueryValue(
+    z.enum(['RESERVED_NOT_SETTLED', 'SETTLED_PAYMENT_OUTSTANDING', 'SETTLED_AND_PAID']),
+  ),
   lossNature: z.string().trim().max(150).optional(),
-  lossFrom: z.coerce.date().optional(),
-  lossTo: z.coerce.date().optional(),
-  notificationFrom: z.coerce.date().optional(),
-  notificationTo: z.coerce.date().optional(),
+  lossFrom: optionalQueryValue(z.coerce.date()),
+  lossTo: optionalQueryValue(z.coerce.date()),
+  notificationFrom: optionalQueryValue(z.coerce.date()),
+  notificationTo: optionalQueryValue(z.coerce.date()),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   sort: z.enum(['lossDate', 'notificationDate', 'claimNumber']).default('lossDate'),

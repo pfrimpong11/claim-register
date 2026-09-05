@@ -50,7 +50,7 @@ export class AuthController {
       /** @type {import('express').CookieOptions} */
       const clearOptions = {
         secure: this.config.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: this.config.COOKIE_SAME_SITE,
         path: '/',
       };
       response.clearCookie(this.config.SESSION_COOKIE_NAME, clearOptions);
@@ -68,7 +68,7 @@ export class AuthController {
   cookieOptions(expiresAt) {
     return {
       secure: this.config.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: this.config.COOKIE_SAME_SITE,
       path: '/',
       expires: expiresAt,
     };

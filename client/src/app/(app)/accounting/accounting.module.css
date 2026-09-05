@@ -1,0 +1,20 @@
+.lines {
+  display: grid;
+  gap: 2px;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.meta {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.links {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}

@@ -31,6 +31,10 @@ const environmentSchema = z
       .regex(/^[a-zA-Z0-9_-]+$/)
       .default('claims_csrf'),
     SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(168).default(12),
+    // Use "none" when the browser client is served from a different site than the API
+    // (for example a Vercel client calling an API on its own domain). Browsers only accept
+    // SameSite=None cookies with the Secure flag, which the API sets in production.
+    COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
     CLIENT_ORIGINS: z.string().default('http://localhost:3000'),
     TRUST_PROXY: z.string().default('false'),
     BODY_LIMIT: z
@@ -59,6 +63,13 @@ const environmentSchema = z
       .default(10 * 1024 * 1024),
   })
   .superRefine((value, context) => {
+    if (value.COOKIE_SAME_SITE === 'none' && value.NODE_ENV !== 'production') {
+      context.addIssue({
+        code: 'custom',
+        message: 'COOKIE_SAME_SITE=none requires NODE_ENV=production (Secure cookies).',
+        path: ['COOKIE_SAME_SITE'],
+      });
+    }
     const cloudinary = [
       value.CLOUDINARY_CLOUD_NAME,
       value.CLOUDINARY_API_KEY,

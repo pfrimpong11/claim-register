@@ -1,0 +1,156 @@
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.infoList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.financialList .item {
+  grid-template-columns: minmax(7.5rem, 36%) minmax(0, 1fr);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(9rem, 40%) 1fr;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.item dt {
+  font-size: var(--text-sm);
+  font-weight: 550;
+  color: var(--color-text-secondary);
+}
+
+.item dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.journalLines {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.actionsCell {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.reconRow {
+  font-size: var(--text-sm);
+}
+
+.formStack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.paymentImpact {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.paymentImpactGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+
+.paymentImpactGrid div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.paymentImpactGrid dt {
+  color: var(--color-text-secondary);
+}
+
+.paymentImpactGrid dd {
+  margin: 0;
+  font-weight: 650;
+  text-align: right;
+}
+
+.impactNeutral,
+.impactSuccess,
+.impactDanger {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.impactNeutral {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.impactSuccess {
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
+}
+
+.impactDanger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger-text);
+}
+
+.overpaymentWarning {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-soft);
+  color: var(--color-warning-text);
+}
+
+.confirmationRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  color: inherit;
+}
+
+.confirmationRow input {
+  width: auto;
+  margin-top: 3px;
+}
+
+@media (max-width: 42rem) {
+  .paymentImpactGrid {
+    grid-template-columns: 1fr;
+  }
+}

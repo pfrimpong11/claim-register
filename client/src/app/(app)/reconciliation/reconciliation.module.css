@@ -1,0 +1,43 @@
+.formStack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.cellStack {
+  display: grid;
+  gap: 2px;
+}
+
+.cellMeta {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.matchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.matchList {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.errorList {
+  display: grid;
+  gap: 2px;
+  font-size: var(--text-sm);
+  color: var(--color-danger-text);
+}
+
+.tabsWrap {
+  padding: var(--space-2) var(--space-5) 0;
+}

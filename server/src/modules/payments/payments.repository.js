@@ -102,7 +102,12 @@ export class PaymentsRepository {
   /** @param {import('@prisma/client').Prisma.TransactionClient} tx */
   paymentAccounts(tx) {
     return tx.gLAccount.findMany({
-      where: { code: { in: ['CLAIMS_PAYABLE', 'SETTLEMENT_ASSETS'] }, isActive: true },
+      where: {
+        code: {
+          in: ['CLAIMS_PAYABLE', 'CLAIMS_OVERPAYMENT_RECEIVABLE', 'SETTLEMENT_ASSETS'],
+        },
+        isActive: true,
+      },
     });
   }
   /** @param {import('@prisma/client').Prisma.TransactionClient} tx @param {import('@prisma/client').Prisma.JournalEntryUncheckedCreateInput & {lines:{create:import('@prisma/client').Prisma.JournalLineUncheckedCreateWithoutJournalEntryInput[]}}} data */
@@ -113,6 +118,7 @@ export class PaymentsRepository {
   paymentJournal(tx, paymentId) {
     return tx.journalEntry.findUnique({
       where: { sourceType_sourceId: { sourceType: 'CLAIM_PAYMENT', sourceId: paymentId } },
+      include: { lines: true },
     });
   }
 }

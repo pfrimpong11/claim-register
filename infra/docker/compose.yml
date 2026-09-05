@@ -1,20 +1,46 @@
+name: claims-register
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+x-server-environment: &server-environment
+  NODE_ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DATABASE_URL: postgresql://claims:${POSTGRES_PASSWORD}@postgres:5432/claims_register
+  REDIS_URL: redis://redis:6379
+  START_EMBEDDED_WORKER: 'false'
+  WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+  # Set all three for Cloudinary, or leave all three empty for the persistent local volume.
+  CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+  CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+  CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+
 services:
   postgres:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: claims_register
       POSTGRES_USER: claims
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in infra/docker/.env}
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U claims -d claims_register']
       interval: 10s
       timeout: 5s
       retries: 5
+    # POSTGRES_BIND=0.0.0.0 only with a firewall rule in front of it.
+    ports:
+      - '${POSTGRES_BIND:-127.0.0.1}:${POSTGRES_PORT:-5433}:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    logging: *logging
 
   redis:
     image: redis:8-alpine
+    restart: unless-stopped
     command: ['redis-server', '--appendonly', 'yes']
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
@@ -23,24 +49,45 @@ services:
       retries: 5
     volumes:
       - redis-data:/data
+    logging: *logging
+
+  # One-shot release step: applies committed Prisma migrations, then exits.
+  migrate:
+    build:
+      context: ../..
+      dockerfile: server/Dockerfile
+      target: tooling
+    image: claims-register-tooling
+    restart: 'no'
+    environment:
+      <<: *server-environment
+      SEED_DEFAULT_PASSWORD: ${SEED_DEFAULT_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - local-uploads:/app/server/uploads
+    logging: *logging
 
   server:
     build:
       context: ../..
       dockerfile: server/Dockerfile
+      target: runtime
+    image: claims-register-server
+    restart: unless-stopped
     environment:
-      NODE_ENV: production
+      <<: *server-environment
       HOST: 0.0.0.0
       PORT: 4000
-      DATABASE_URL: postgresql://claims:${POSTGRES_PASSWORD}@postgres:5432/claims_register
-      REDIS_URL: redis://redis:6379
-      CLIENT_ORIGINS: ${CLIENT_ORIGINS:?Set CLIENT_ORIGINS}
+      CLIENT_ORIGINS: ${CLIENT_ORIGINS:?Set CLIENT_ORIGINS in infra/docker/.env}
       TRUST_PROXY: ${TRUST_PROXY:-1}
-      START_EMBEDDED_WORKER: 'false'
-      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
-      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
-      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      COOKIE_SAME_SITE: ${COOKIE_SAME_SITE:-none}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-12}
+      DOCUMENT_MAX_BYTES: ${DOCUMENT_MAX_BYTES:-10485760}
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -50,42 +97,53 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+      start_period: 20s
     ports:
-      - '4000:4000'
+      - '127.0.0.1:${SERVER_PORT:-4000}:4000'
     volumes:
       - local-uploads:/app/server/uploads
+    logging: *logging
 
   worker:
     build:
       context: ../..
       dockerfile: server/Dockerfile
+      target: runtime
+    image: claims-register-server
+    restart: unless-stopped
     command: ['node', 'server/src/worker/standalone.js']
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://claims:${POSTGRES_PASSWORD}@postgres:5432/claims_register
-      REDIS_URL: redis://redis:6379
-      START_EMBEDDED_WORKER: 'false'
-      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
-      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
-      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+    environment: *server-environment
     depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
+    # CSV imports and report exports are files written by the API and read by
+    # the worker (and vice versa), so both share the same uploads volume.
+    volumes:
+      - local-uploads:/app/server/uploads
+    logging: *logging
 
   client:
     build:
       context: ../..
       dockerfile: client/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?Set NEXT_PUBLIC_API_BASE_URL in infra/docker/.env}
+    image: claims-register-client
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?Set NEXT_PUBLIC_API_BASE_URL}
     depends_on:
       server:
         condition: service_healthy
     ports:
-      - '3000:3000'
+      - '127.0.0.1:${CLIENT_PORT:-3000}:3000'
+    logging: *logging
 
 volumes:
   postgres-data:

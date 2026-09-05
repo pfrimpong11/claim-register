@@ -32,5 +32,10 @@ describe('payment calculations', () => {
     expect(deriveFinancialPosition(new Prisma.Decimal(100), new Prisma.Decimal(100)).status).toBe(
       'SETTLED_AND_PAID',
     );
+    const overpaid = deriveFinancialPosition(new Prisma.Decimal(100), new Prisma.Decimal(150));
+    expect(overpaid.status).toBe('SETTLED_AND_PAID');
+    expect(overpaid.balance.toString()).toBe('-50');
+    expect(overpaid.outstanding.toString()).toBe('0');
+    expect(overpaid.overpaid.toString()).toBe('50');
   });
 });

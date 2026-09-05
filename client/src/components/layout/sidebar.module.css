@@ -1,0 +1,147 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-sidebar-bg);
+  color: var(--color-sidebar-text);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-height: var(--topbar-height);
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-sidebar-active);
+  color: var(--color-text-invert);
+}
+
+.brandName {
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--color-text-invert);
+  white-space: nowrap;
+}
+
+.userCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 var(--space-3) var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-sidebar-hover);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-sidebar-active);
+  color: var(--color-text-invert);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.userMeta {
+  display: grid;
+  min-width: 0;
+}
+
+.userName {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-text-invert);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userRole {
+  font-size: var(--text-xs);
+  color: var(--color-sidebar-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+}
+
+.nav {
+  display: grid;
+  gap: 2px;
+  padding: 0 var(--space-2);
+  flex: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-sidebar-text);
+  font-size: var(--text-md);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.navItem:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-invert);
+}
+
+.active,
+.active:hover {
+  background: var(--color-sidebar-active);
+  color: var(--color-text-invert);
+}
+
+.collapseButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-sidebar-text-dim);
+  font-size: var(--text-sm);
+  font-weight: 550;
+}
+
+.collapseButton:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-text-invert);
+}
+
+.collapsed .brand,
+.collapsed .navItem,
+.collapsed .collapseButton {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

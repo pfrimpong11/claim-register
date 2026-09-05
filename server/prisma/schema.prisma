@@ -185,6 +185,7 @@ model User {
   createdPayments ClaimPayment[] @relation("PaymentCreator")
   approvedPayments ClaimPayment[] @relation("PaymentApprover")
   succeededPayments ClaimPayment[] @relation("PaymentSuccessActor")
+  confirmedOverpayments ClaimPayment[] @relation("PaymentOverpaymentConfirmer")
   reversedPayments ClaimPayment[] @relation("PaymentReverser")
   idempotencyKeys IdempotencyKey[]
   transactionImports TransactionImport[] @relation("TransactionImportActor")
@@ -501,6 +502,10 @@ model ClaimPayment {
   approvedAt DateTime? @map("approved_at") @db.Timestamptz(6)
   succeededBy String? @map("succeeded_by") @db.Uuid
   succeededAt DateTime? @map("succeeded_at") @db.Timestamptz(6)
+  overpaymentAmount Decimal @default(0) @map("overpayment_amount") @db.Decimal(19, 4)
+  overpaymentReason String? @map("overpayment_reason") @db.VarChar(500)
+  overpaymentConfirmedBy String? @map("overpayment_confirmed_by") @db.Uuid
+  overpaymentConfirmedAt DateTime? @map("overpayment_confirmed_at") @db.Timestamptz(6)
   reversedBy String? @map("reversed_by") @db.Uuid
   reversedAt DateTime? @map("reversed_at") @db.Timestamptz(6)
   reversalReason String? @map("reversal_reason") @db.VarChar(500)
@@ -515,6 +520,7 @@ model ClaimPayment {
   creator User @relation("PaymentCreator", fields: [createdBy], references: [id])
   approver User? @relation("PaymentApprover", fields: [approvedBy], references: [id])
   successActor User? @relation("PaymentSuccessActor", fields: [succeededBy], references: [id])
+  overpaymentConfirmer User? @relation("PaymentOverpaymentConfirmer", fields: [overpaymentConfirmedBy], references: [id], onDelete: Restrict)
   reverser User? @relation("PaymentReverser", fields: [reversedBy], references: [id])
   reconciliationMatches ReconciliationMatch[]
   @@index([payableId, status, paymentDate])

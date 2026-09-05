@@ -232,6 +232,11 @@ async function seed() {
     for (const account of [
       { code: 'CLAIMS_EXPENSE', name: 'Claims Expense', accountType: 'EXPENSE' },
       { code: 'CLAIMS_PAYABLE', name: 'Claims Payable', accountType: 'LIABILITY' },
+      {
+        code: 'CLAIMS_OVERPAYMENT_RECEIVABLE',
+        name: 'Claims Overpayment Receivable',
+        accountType: 'ASSET',
+      },
       { code: 'SETTLEMENT_ASSETS', name: 'Settlement Assets / Cash', accountType: 'ASSET' },
     ]) {
       await transaction.gLAccount.upsert({
@@ -279,7 +284,7 @@ async function seed() {
       [
         '60000000-0000-4000-8000-000000000001',
         'GCB-GHS',
-        'GCB-DEMO-20260901-001',
+        'GCB-20260901-001',
         '1250.00',
         'BANK_STATEMENT',
         'Demo bank claim payment debit',
@@ -287,7 +292,7 @@ async function seed() {
       [
         '60000000-0000-4000-8000-000000000002',
         'MTN-MOMO-GHS',
-        'MOMO-DEMO-20260901-001',
+        'MOMO-20260901-001',
         '500.00',
         'MOMO_STATEMENT',
         'Demo mobile-money claim payment debit',
@@ -394,7 +399,7 @@ async function seedSampleClaims(transaction, actors) {
       where: { id: claimId },
       create: {
         id: claimId,
-        claimNumber: `CLM-DEMO-2026-${String(index + 1).padStart(6, '0')}`,
+        claimNumber: `CLM-2026-${String(index + 1).padStart(6, '0')}`,
         policyId: policy.id,
         policyNumberSnapshot: policy.policyNumber,
         policyNameSnapshot: policy.policyName,
@@ -516,7 +521,7 @@ async function seedSamplePayments(transaction, actors, claims, payables) {
       where: { id: paymentId },
       create: {
         id: paymentId,
-        paymentNumber: `PAY-DEMO-2026-${String(payable.index + 1).padStart(6, '0')}`,
+        paymentNumber: `PAY-2026-${String(payable.index + 1).padStart(6, '0')}`,
         claimId: payable.claimId,
         payableId: payable.id,
         payeePartyId: payable.payeePartyId,
@@ -612,7 +617,7 @@ async function seedSampleJournals(transaction, actors, claims, payables, payment
       where: { id: journalId },
       create: {
         id: journalId,
-        journalNumber: `JRN-DEMO-2026-${String(index + 1).padStart(6, '0')}`,
+        journalNumber: `JRN-2026-${String(index + 1).padStart(6, '0')}`,
         entryDate: new Date('2026-08-26'),
         sourceType: plan.sourceType,
         sourceId: plan.sourceId,

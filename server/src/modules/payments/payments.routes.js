@@ -6,6 +6,7 @@ import {
   payablePaymentParamsSchema,
   paymentBodySchema,
   paymentParamsSchema,
+  paymentSuccessBodySchema,
   reversalBodySchema,
 } from './payments.schemas.js';
 /** @param {{controller:import('./payments.controller.js').PaymentsController,authenticate:import('express').RequestHandler,csrfProtection:import('express').RequestHandler}} input */
@@ -41,7 +42,11 @@ export function createPaymentsRouter({ controller, authenticate, csrfProtection 
     '/payments/:id/mark-successful',
     csrfProtection,
     requirePermission('payments.succeed'),
-    validate({ params: paymentParamsSchema, headers: idempotencyHeadersSchema }),
+    validate({
+      params: paymentParamsSchema,
+      body: paymentSuccessBodySchema,
+      headers: idempotencyHeadersSchema,
+    }),
     controller.succeed,
   );
   router.post(

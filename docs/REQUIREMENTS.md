@@ -12,7 +12,7 @@ It begins when a loss is reported. It references policy and insured-party inform
 - Keep estimated loss/reserve, approved indemnity, paid amount, and outstanding amount conceptually separate.
 - Support one approved indemnity being settled by one or more payments.
 - Correctly handle payments made in a currency different from the claim currency.
-- Prevent overpayment under concurrency.
+- Warn about and require explicit authorization for overpayment under concurrency while preserving genuine external payment facts.
 - Reconcile successful payments against independent bank, mobile-money, gateway, or imported transactions.
 - Provide filters, currency-grouped totals, role-based access, and an audit trail.
 - Be immediately demonstrable with realistic Ghana-focused seed data while allowing minimal new party and policy creation.
@@ -105,7 +105,8 @@ Permissions are enforced by the API. Seeded roles are defaults, not hard-coded a
 - FR-043: Settlement currency equals the payable/claim currency.
 - FR-044: Same-currency payments use an FX rate of exactly 1.
 - FR-045: Successful, non-reversed settlement amounts cannot exceed the approved payable amount.
-- FR-046: Overpayment prevention is enforced atomically by the backend and remains correct under concurrent requests.
+- FR-046: Payment creation compares the settlement equivalent with the locked payable outstanding amount. An amount above outstanding is rejected by default and requires explicit confirmation plus a reason.
+- FR-046A: Marking a payment successful repeats the comparison transactionally. An authorized success actor may record a genuine external overpayment only with explicit confirmation and a reason; the actor, time, reason, and excess are audited.
 - FR-047: A payment may transition through `DRAFT`, `APPROVED`, `PROCESSING`, `SUCCESSFUL`, `FAILED`, and `REVERSED` according to allowed transitions.
 - FR-048: Reversal creates an auditable reversal; it does not delete or rewrite the original payment.
 - FR-049: Payment creation/approval endpoints support idempotency keys.
@@ -114,18 +115,18 @@ Permissions are enforced by the API. Seeded roles are defaults, not hard-coded a
 
 - FR-050: Approved amount equals approved, non-cancelled `INDEMNITY` payables in claim currency.
 - FR-051: Total paid equals successful, non-reversed payments allocated to indemnity payables, using stored settlement amounts.
-- FR-052: Outstanding equals `max(approved indemnity - total paid, 0)`.
+- FR-052: Signed balance equals `approved indemnity - total paid`; outstanding equals `max(balance, 0)` and overpaid equals `max(-balance, 0)`.
 - FR-053: Before an approved indemnity exists, financial status is `RESERVED_NOT_SETTLED`.
 - FR-054: Approved indemnity with positive outstanding is `SETTLED_PAYMENT_OUTSTANDING`.
-- FR-055: Approved indemnity with zero outstanding is `SETTLED_AND_PAID`.
+- FR-055: Approved indemnity with a zero or negative signed balance is `SETTLED_AND_PAID`.
 - FR-056: Reconciliation status does not change these financial calculations.
 - FR-057: Totals across claims are grouped by currency; unlike currencies are never silently summed.
 
 ### Lightweight general ledger
 
-- FR-058: The system seeds only the GL accounts needed by the exercise: Claims Expense, Claims Payable, and Settlement Assets/Cash.
+- FR-058: The system seeds only the GL accounts needed by the exercise: Claims Expense, Claims Payable, Claims Overpayment Receivable, and Settlement Assets/Cash.
 - FR-058A: Approving an indemnity payable generates and posts a balanced journal in the claim currency: debit Claims Expense and credit Claims Payable.
-- FR-058B: Marking a payment successful generates and posts a balanced journal in the claim currency using the stored settlement amount: debit Claims Payable and credit Settlement Assets/Cash.
+- FR-058B: Marking a payment successful generates a balanced journal in claim currency. It debits Claims Payable only up to the remaining liability, debits Claims Overpayment Receivable for a confirmed excess, and credits Settlement Assets/Cash for the full transfer.
 - FR-058C: Reversing a successful payment generates a linked reversal journal; posted journals are never edited or deleted.
 - FR-058D: Journal creation is automatic and atomic with the originating business event. Authorized users can view journals but cannot manually compose or post them.
 - FR-058E: Each journal links to its source entity and claim, has a unique journal number, entry date, description, currency, posting time, and balanced lines.
@@ -161,7 +162,7 @@ Permissions are enforced by the API. Seeded roles are defaults, not hard-coded a
 - Amounts are positive decimal values with explicit ISO 4217 currency codes.
 - Financial values use decimal arithmetic; floats are forbidden.
 - A payment's payable, claim, payee, and settlement currency must be mutually consistent.
-- Successful payment settlement total cannot exceed the approved payable.
+- A successful payment may exceed the approved payable only through the explicit, reasoned overpayment exception; ordinary requests remain rejected.
 - Historical payment FX data is immutable after success; correction requires reversal and replacement.
 - Claim status shown in the register is derived, not manually edited.
 - Payment execution status and reconciliation status remain separate.
@@ -193,4 +194,4 @@ Permissions are enforced by the API. Seeded roles are defaults, not hard-coded a
 
 ## 10. Acceptance journey
 
-An evaluator can sign in, view/filter currency-grouped claims, create a claim using seeded or inline-created reference data, upload a claim document, approve an indemnity, inspect its automatic journal, record partial and final payments (including one cross-currency example), observe outstanding/status updates, see an overpayment rejected, inspect payment/reversal journals, import or view a mobile-money transaction, reconcile it independently, export the filtered register, and inspect the audit history.
+An evaluator can sign in, view/filter currency-grouped claims, create a claim using seeded or inline-created reference data, upload a claim document, approve an indemnity, inspect its automatic journal, record partial and final payments (including one cross-currency example), observe outstanding/status updates, see an accidental overpayment rejected, explicitly record a genuine external overpayment, inspect payment/reversal journals, import or view a mobile-money transaction, reconcile it independently, export the filtered register, and inspect the audit history.

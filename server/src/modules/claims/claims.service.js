@@ -132,6 +132,7 @@ export class ClaimsService {
           new Prisma.Decimal(approved).minus(paid),
           0,
         ).toString();
+        const balance = new Prisma.Decimal(approved).minus(paid);
         return {
           currencyCode: g.currencyCode,
           claimCount: g._count,
@@ -139,6 +140,8 @@ export class ClaimsService {
           approvedAmount: approved,
           paidAmount: paid,
           outstandingAmount: outstanding,
+          balanceAmount: balance.toString(),
+          overpaidAmount: Prisma.Decimal.max(balance.negated(), 0).toString(),
         };
       }),
     };
@@ -163,13 +166,16 @@ function serialize(claim) {
   const paid = (claim.payables ?? [])
     .flatMap((payable) => payable.payments ?? [])
     .reduce((total, payment) => total.plus(payment.settlementAmount), new Prisma.Decimal(0));
-  const outstanding = Prisma.Decimal.max(approved.minus(paid), 0);
+  const balance = approved.minus(paid);
+  const outstanding = Prisma.Decimal.max(balance, 0);
   return {
     ...claim,
     estimatedLossAmount: reserve?.amount?.toString() ?? '0',
     approvedAmount,
     paidAmount: paid.toString(),
     outstandingAmount: outstanding.toString(),
+    balanceAmount: balance.toString(),
+    overpaidAmount: Prisma.Decimal.max(balance.negated(), 0).toString(),
     financialStatus: approved.isZero()
       ? 'RESERVED_NOT_SETTLED'
       : outstanding.isZero()

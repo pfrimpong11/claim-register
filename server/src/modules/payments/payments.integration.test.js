@@ -119,13 +119,109 @@ describeWithInfrastructure('Phase 5 payments and FX', () => {
       expect(register.body.meta.total).toBe(1);
       expect(register.body.summaries[0].paidAmount).toBe('900');
       expect(register.body.summaries[0].outstandingAmount).toBe('100');
+
+      await financeOfficer
+        .post(`/api/v1/payables/${payable.body.data.id}/payments`)
+        .set('x-csrf-token', fo)
+        .set('idempotency-key', `${marker}-overpayment-rejected-at-create`)
+        .send({
+          paymentDate: '2026-09-02',
+          paymentAmount: '150',
+          paymentCurrencyCode: 'GHS',
+          fxRate: '1',
+          settlementAccountId: ghs.id,
+        })
+        .expect(409)
+        .expect((response) => {
+          expect(response.body.error.code).toBe('PAYMENT_OVERPAYMENT_CONFIRMATION_REQUIRED');
+          expect(response.body.error.details.overpayment).toBe('50');
+        });
+      const overpayment = (
+        await financeOfficer
+          .post(`/api/v1/payables/${payable.body.data.id}/payments`)
+          .set('x-csrf-token', fo)
+          .set('idempotency-key', `${marker}-overpayment-create`)
+          .send({
+            paymentDate: '2026-09-02',
+            paymentAmount: '150',
+            paymentCurrencyCode: 'GHS',
+            fxRate: '1',
+            settlementAccountId: ghs.id,
+            confirmOverpayment: true,
+            overpaymentReason: 'External bank transfer exceeded the approved balance',
+          })
+          .expect(201)
+      ).body.data;
+      await approve(financeManager, fm, overpayment.id, `${marker}-overpayment-approve`);
+      await succeed(
+        financeOfficer,
+        fo,
+        overpayment.id,
+        `${marker}-overpayment-success-rejected`,
+        409,
+      );
+      const overpaymentSuccess = await succeed(
+        financeOfficer,
+        fo,
+        overpayment.id,
+        `${marker}-overpayment-success`,
+        200,
+        {
+          confirmOverpayment: true,
+          overpaymentReason: 'External bank transfer exceeded the approved balance',
+        },
+      );
+      expect(overpaymentSuccess.body.data.overpaymentAmount).toBe('50');
+      expect(
+        overpaymentSuccess.body.data.journals[0].lines.map((line) => [
+          line.glAccount.code,
+          line.debitAmount,
+          line.creditAmount,
+        ]),
+      ).toEqual(
+        expect.arrayContaining([
+          ['CLAIMS_PAYABLE', '100', '0'],
+          ['CLAIMS_OVERPAYMENT_RECEIVABLE', '50', '0'],
+          ['SETTLEMENT_ASSETS', '0', '150'],
+        ]),
+      );
+      detail = await financeOfficer.get(`/api/v1/claims/${claimId}`).expect(200);
+      expect(detail.body.data.paidAmount).toBe('1050');
+      expect(detail.body.data.balanceAmount).toBe('-50');
+      expect(detail.body.data.outstandingAmount).toBe('0');
+      expect(detail.body.data.overpaidAmount).toBe('50');
+      expect(detail.body.data.financialStatus).toBe('SETTLED_AND_PAID');
+      const overpaymentReversal = await financeManager
+        .post(`/api/v1/payments/${overpayment.id}/reverse`)
+        .set('x-csrf-token', fm)
+        .set('idempotency-key', `${marker}-overpayment-reverse`)
+        .send({ reason: 'The recipient returned the excess transfer' })
+        .expect(200);
+      expect(
+        overpaymentReversal.body.data.journals[0].lines.map((line) => [
+          line.glAccount.code,
+          line.debitAmount,
+          line.creditAmount,
+        ]),
+      ).toEqual(
+        expect.arrayContaining([
+          ['CLAIMS_PAYABLE', '0', '100'],
+          ['CLAIMS_OVERPAYMENT_RECEIVABLE', '0', '50'],
+          ['SETTLEMENT_ASSETS', '150', '0'],
+        ]),
+      );
+      detail = await financeOfficer.get(`/api/v1/claims/${claimId}`).expect(200);
+      expect(detail.body.data.paidAmount).toBe('900');
+      expect(detail.body.data.outstandingAmount).toBe('100');
+      expect(detail.body.data.overpaidAmount).toBe('0');
+      expect(detail.body.data.financialStatus).toBe('SETTLED_PAYMENT_OUTSTANDING');
       const journals = await financeOfficer.get('/api/v1/accounting/journals').expect(200);
       expect(journals.body.data.some((journal) => journal.claimId === claimId)).toBe(true);
       expect(
         await prisma.journalEntry.count({
           where: { claimId, sourceType: { in: ['CLAIM_PAYMENT', 'PAYMENT_REVERSAL'] } },
         }),
-      ).toBe(4);
+      ).toBe(6);
     } finally {
       if (claimId) {
         const paymentIds = (
@@ -182,11 +278,12 @@ async function approve(agent, csrf, id, key) {
     .set('idempotency-key', key)
     .expect(200);
 }
-async function succeed(agent, csrf, id, key, expected) {
+async function succeed(agent, csrf, id, key, expected, body) {
   const response = await agent
     .post(`/api/v1/payments/${id}/mark-successful`)
     .set('x-csrf-token', csrf)
-    .set('idempotency-key', key);
+    .set('idempotency-key', key)
+    .send(body ?? {});
   if (expected) expect(response.status).toBe(expected);
   return response;
 }

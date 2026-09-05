@@ -34,7 +34,9 @@ export class PaymentsController {
   };
   /** @type {import('express').RequestHandler} */ succeed = async (req, res, next) => {
     try {
-      return res.json({ data: await this.service.succeed(String(req.params.id), context(req)) });
+      return res.json({
+        data: await this.service.succeed(String(req.params.id), req.body, context(req)),
+      });
     } catch (e) {
       return next(e);
     }

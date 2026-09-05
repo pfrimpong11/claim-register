@@ -167,3 +167,11 @@ Physical deletion after deactivation is asynchronous and retryable. PostgreSQL r
 **Decision:** Seed 15 idempotent `DEMO`-numbered fictional claims without advancing or resetting normal claim, payment, or journal sequences. The sample covers the exercise statuses, currencies, payment lifecycle/FX, documents, journals, and reconciliation; seeded payables remain indemnity-only.
 
 **Why:** Evaluators can immediately inspect all statuses, currencies, documents, journals, and settlement sources, while later user-created records retain safe monotonic numbering and remain distinguishable from fixtures.
+
+## ADR-028: Genuine external overpayments are controlled exceptions
+
+**Decision:** Compare a payment with current payable outstanding at both creation and successful transition. Reject an excess by default, but allow a user authorized to mark payments successful to explicitly record a genuine external overpayment with confirmation and a required reason. Preserve the signed balance, expose outstanding and overpaid amounts separately, and store the excess, actor, reason, and time on the successful payment.
+
+The payment journal debits Claims Payable only up to its remaining balance, debits Claims Overpayment Receivable for the excess, and credits Settlement Assets for the full external transfer. Reversal inverts the original journal lines.
+
+**Why:** This application records transfers executed outside it. Hiding a real overpayment would make payment, cash, reconciliation, and audit records inaccurate, while accepting every excess silently would weaken error prevention. The explicit exception supports the exercise's “zero or below” status rule and keeps accidental and actual overpayments distinct.

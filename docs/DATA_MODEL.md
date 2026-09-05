@@ -60,7 +60,7 @@ The exercise has one active indemnity reserve per claim. With more time, reserve
 ### Payables and payments
 
 - `claim_payables`: id, claim_id, payee_party_id, payable_type, amount, currency_code, status, description nullable, approved_by/at nullable, created_by, timestamps.
-- `claim_payments`: id, payment_number unique, claim_id, payable_id, payee_party_id, payment_date, payment_amount, payment_currency, fx_rate, settlement_amount, settlement_currency, settlement_account_id, reference nullable, status, created/approved/succeeded actors and times, reversal actor/time/reason nullable, timestamps.
+- `claim_payments`: id, payment_number unique, claim_id, payable_id, payee_party_id, payment_date, payment_amount, payment_currency, fx_rate, settlement_amount, settlement_currency, settlement_account_id, reference nullable, status, created/approved/succeeded actors and times, confirmed overpayment amount/reason/actor/time, reversal actor/time/reason nullable, timestamps.
 - `idempotency_keys`: id, scope, key, actor_id, request_hash, response_code/body, expires_at, created_at; unique `(scope, key, actor_id)`.
 
 For the exercise a payment belongs to exactly one payable. Reversal transitions a successful payment to `REVERSED`, retains its immutable amount/FX facts, and creates a linked reversal journal; it does not create a negative payment row. With more time, `payment_allocations` would let one payment cover several payables without changing historical payment semantics.
@@ -112,7 +112,9 @@ The claims register query derives, per claim:
 estimated_loss = active indemnity reserve amount
 approved_amount = sum(approved indemnity payables)
 paid_amount = sum(successful, non-reversed settlement amounts for indemnity payables)
-outstanding_amount = greatest(approved_amount - paid_amount, 0)
+balance_amount = approved_amount - paid_amount
+outstanding_amount = greatest(balance_amount, 0)
+overpaid_amount = greatest(-balance_amount, 0)
 ```
 
 Financial status:
@@ -143,7 +145,7 @@ Implement this initially as a well-indexed query/repository projection. Introduc
 
 Journal balance is verified by the accounting service inside the originating transaction. Line-level checks alone cannot prove whole-entry balance.
 
-Cross-row limits such as overpayment and overmatching require transactional application logic because a simple check constraint cannot safely express them.
+Cross-row limits such as overpayment confirmation and overmatching require transactional application logic because a simple check constraint cannot safely express them. A confirmed excess is stored on the successful payment and posted to Claims Overpayment Receivable rather than debiting Claims Payable beyond its remaining balance.
 
 ## 7. Number generation
 

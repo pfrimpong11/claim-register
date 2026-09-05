@@ -42,8 +42,8 @@ jobs:
       REDIS_URL: redis://127.0.0.1:6379
       START_EMBEDDED_WORKER: 'true'
       RUN_INFRA_INTEGRATION: 'true'
-      SEED_DEFAULT_PASSWORD: ChangeMe-CI-Only-123!
-      E2E_PASSWORD: ChangeMe-CI-Only-123!
+      SEED_DEFAULT_PASSWORD: Test-CI-123!
+      E2E_PASSWORD: Test-CI-123!
 
     steps:
       - uses: actions/checkout@v4

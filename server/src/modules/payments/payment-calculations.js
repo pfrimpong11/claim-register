@@ -20,14 +20,16 @@ export function calculateSettlement(input) {
   return amount.times(rate).toDecimalPlaces(input.decimalPlaces, Prisma.Decimal.ROUND_HALF_UP);
 }
 
-/** @param {import('@prisma/client').Prisma.Decimal} approved @param {import('@prisma/client').Prisma.Decimal} paid @returns {{approved:import('@prisma/client').Prisma.Decimal,paid:import('@prisma/client').Prisma.Decimal,outstanding:import('@prisma/client').Prisma.Decimal,status:import('@prisma/client').ClaimFinancialStatus}} */
+/** @param {import('@prisma/client').Prisma.Decimal} approved @param {import('@prisma/client').Prisma.Decimal} paid */
 export function deriveFinancialPosition(approved, paid) {
-  const outstanding = Prisma.Decimal.max(approved.minus(paid), 0);
+  const balance = approved.minus(paid);
+  const outstanding = Prisma.Decimal.max(balance, 0);
+  const overpaid = Prisma.Decimal.max(balance.negated(), 0);
   /** @type {import('@prisma/client').ClaimFinancialStatus} */
   const status = approved.isZero()
     ? 'RESERVED_NOT_SETTLED'
     : outstanding.isZero()
       ? 'SETTLED_AND_PAID'
       : 'SETTLED_PAYMENT_OUTSTANDING';
-  return { approved, paid, outstanding, status };
+  return { approved, paid, balance, outstanding, overpaid, status };
 }

@@ -13,7 +13,13 @@ export class ReconciliationController {
   };
   /** @type {import('express').RequestHandler} */ listTransactions = async (req, res, next) => {
     try {
-      return res.json(await this.service.listTransactions(/** @type {any} */ (req.query)));
+      return res.json(
+        await this.service.listTransactions(
+          /** @type {import('zod').infer<typeof import('./reconciliation.schemas.js').transactionQuerySchema>} */ (
+            req.validatedQuery
+          ),
+        ),
+      );
     } catch (error) {
       return next(error);
     }

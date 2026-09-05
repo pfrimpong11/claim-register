@@ -2,6 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { parseEnvironment } from './env.js';
 
 describe('parseEnvironment', () => {
+  it('defaults cookies to SameSite=Lax', () => {
+    expect(parseEnvironment({ NODE_ENV: 'test' }).COOKIE_SAME_SITE).toBe('lax');
+  });
+
+  it('allows SameSite=None cookies only in production', () => {
+    expect(
+      parseEnvironment({ NODE_ENV: 'production', COOKIE_SAME_SITE: 'none' }).COOKIE_SAME_SITE,
+    ).toBe('none');
+    expect(() => parseEnvironment({ NODE_ENV: 'test', COOKIE_SAME_SITE: 'none' })).toThrow(
+      /requires NODE_ENV=production/,
+    );
+  });
+
   it('uses local storage when Cloudinary is entirely absent', () => {
     expect(parseEnvironment({ NODE_ENV: 'test' }).STORAGE_PROVIDER).toBe('local');
   });

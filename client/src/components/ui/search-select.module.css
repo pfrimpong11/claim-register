@@ -1,0 +1,109 @@
+.root {
+  position: relative;
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--space-3);
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-6) var(--space-2) calc(var(--space-6) + var(--space-1));
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-md);
+  min-height: 36px;
+}
+
+.input:focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 0;
+  border-color: var(--color-primary);
+}
+
+.chevron,
+.clear {
+  position: absolute;
+  right: var(--space-2);
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+}
+
+.chevron {
+  pointer-events: none;
+}
+
+.clear {
+  border: 0;
+  background: transparent;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+}
+
+.clear:hover {
+  background: var(--color-neutral-soft);
+  color: var(--color-text);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-drawer);
+  overflow: hidden;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1);
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.option {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-md);
+}
+
+.highlighted {
+  background: var(--color-primary-soft);
+}
+
+.option[aria-selected='true'] {
+  font-weight: 600;
+}
+
+.notice {
+  padding: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.actionSlot {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-2);
+}

@@ -88,7 +88,7 @@ export class ClaimsExportService {
     let rowCount = 0;
     try {
       stream.write(
-        'Claim Number,Policy Number,Insured,Loss Date,Notification Date,Loss Nature,Currency,Estimated Loss,Approved Amount,Paid Amount,Outstanding Amount,Status\r\n',
+        'Claim Number,Policy Number,Insured,Loss Date,Notification Date,Loss Nature,Currency,Estimated Loss,Approved Amount,Paid Amount,Balance Amount,Outstanding Amount,Overpaid Amount,Status\r\n',
       );
       const base = claimsQuerySchema.parse(item.filters);
       let page = 1;
@@ -108,7 +108,9 @@ export class ClaimsExportService {
               claim.estimatedLossAmount,
               claim.approvedAmount,
               claim.paidAmount,
+              claim.balanceAmount,
               claim.outstandingAmount,
+              claim.overpaidAmount,
               claim.financialStatus,
             ]
               .map(csvCell)
